@@ -15,7 +15,7 @@ Built for Liferay DXP 7.4 (2026.Q1+).
 ## Setup
 
 ```bash
-git clone <repo> && cd liferay-export-import-validation-tool
+git clone <repo> && cd lfimex
 cp config/config.sh.example config/config.sh
 $EDITOR config/config.sh              # fill in BUNDLES_DIR, creds, source site
 ln -s "$PWD/lfimex" ~/.local/bin/lfimex   # optional, makes the command global
@@ -42,6 +42,7 @@ lfimex --assets blogs --cleanup
 # Just produce LARs from the source site — no instance, no import, no validate.
 # One LAR per asset (per-asset mode) or one LAR for everything (--batch-mode bundled).
 lfimex --assets all --export-only
+lfimex --assets documents_and_media --export-only
 lfimex --assets blogs,web_content --export-only --batch-mode bundled
 
 # Full export → import flow but skip the DB-level comparison.
@@ -54,8 +55,8 @@ lfimex --skip-validation
 lfimex --instance-mode reuse --cleanup
 
 # Date-range scoped export.
-lfimex --assets web_content --filter date-range \
-       --from-date 2026-05-01 --to-date 2026-05-13
+lfimex --assets documents_and_media --filter date-range \
+       --from-date 2023-12-01 --to-date 2026-05-13
 
 # Drop one specific check known to be a false positive on this corpus.
 lfimex --assets documents_and_media \
