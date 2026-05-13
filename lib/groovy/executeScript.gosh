@@ -1,0 +1,29 @@
+// =============================================================================
+// Gogo Shell wrapper: read a Groovy script from disk and execute it through
+// Liferay's ScriptingExecutor service. Output from the script flows back on
+// blade sh's stdout.
+//
+// Pattern adapted from
+// https://liferay.dev/b/how-to-execute-groovy-scripts-from-the-shell
+// (the blog's `\[(...)\] get 0` array-wrap stopped working in DXP 7.4, so we
+// index the service-reference array with `$refs 0` instead).
+//
+// Usage from blade:
+//   blade sh "sh /abs/path/to/executeScript.gosh /abs/path/script.groovy groovy"
+//
+// $1 — absolute path to the script file
+// $2 — scripting language (defaults to "groovy")
+// =============================================================================
+
+scriptFile = $1
+
+if { $2 } { scriptingLanguage = $2 } { scriptingLanguage = "groovy" }
+
+fileUtilRefs = $.context servicereferences com.liferay.portal.kernel.util.File null
+fileUtil = $.context service ($fileUtilRefs 0)
+script = $fileUtil read $scriptFile
+
+scriptingRefs = $.context servicereferences com.liferay.portal.kernel.scripting.ScriptingExecutor "(scripting.language=$scriptingLanguage)"
+scripting = $.context service ($scriptingRefs 0)
+
+$scripting eval null null null $script

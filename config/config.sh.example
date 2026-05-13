@@ -1,0 +1,196 @@
+#!/bin/bash
+# =============================================================================
+# Liferay Export-Import Validation Tool — Configuration (EXAMPLE)
+# =============================================================================
+# Copy this file to config.sh and edit values for your environment:
+#
+#     cp config/config.sh.example config/config.sh
+#
+# config/config.sh is gitignored. This .example file IS checked into git, so
+# don't put credentials or per-developer paths here — keep those in your
+# local config.sh.
+#
+# Every variable below uses the "${NAME:-default}" form so any value can also
+# be overridden per-run via an env var:
+#
+#     SOURCE_GROUP_ID=10182 lfimex --assets blogs
+# =============================================================================
+
+# Unique ID for this run, used in log and result paths. Defaults to a timestamp.
+RUN_ID="${RUN_ID:-$(date +%Y%m%d-%H%M%S)}"
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+
+# Project root (parent of config/). Set here once and reused by every entry
+# point so they don't all recompute it. The conditional lets a caller supply
+# its own value if it's already resolved one.
+PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+BUNDLES_DIR="${BUNDLES_DIR:-/path/to/your/liferay/bundles}"
+LIFERAY_LOG_DIR="${LIFERAY_LOG_DIR:-${BUNDLES_DIR}/logs}"
+RESULTS_DIR="${RESULTS_DIR:-${PROJECT_DIR}/results}"
+RUN_DIR="${RESULTS_DIR}/${RUN_ID}"
+COMPARE_SH="${COMPARE_SH:-${PROJECT_DIR}/lib/compare.sh}"
+
+# -----------------------------------------------------------------------------
+# General settings
+# -----------------------------------------------------------------------------
+
+# INSTANCE_MODE selects the target portal instance for the import:
+#   reuse  — use the source company; everything happens in one portal instance.
+#   create — call Liferay via "blade sh" + lib/groovy/create-instance.groovy to
+#            spin up a fresh Company. Requires the `blade` CLI on PATH and the
+#            Gogo Shell reachable from the local machine.
+INSTANCE_MODE="${INSTANCE_MODE:-create}"
+
+# BATCH_MODE selects how multiple assets are sent through the pipeline:
+#   per-asset (default) — run export → import → validate once per selected
+#                         asset. Each asset gets its own LAR and its own
+#                         result rows (export:blogs, import:blogs, …).
+#   bundled             — run a single export → single import → per-asset
+#                         validate. One LAR carries every asset.
+BATCH_MODE="${BATCH_MODE:-per-asset}"
+
+# Polling settings for waiting the background import process to complete.
+POLL_SECONDS="${POLL_SECONDS:-2}"
+
+# Timeout for the background import process to complete before giving up.
+POLL_TIMEOUT="${POLL_TIMEOUT:-1800}"
+
+# Delete the test target instance after the run completes so the bundle stays
+# tidy.
+#   1 — tear down. In mode=create, drop the new Company (cascades to the
+#       site). In mode=reuse, drop only the NEW_SITE_GROUP_ID.
+#   0 — keep everything for inspection (default).
+CLEANUP_INSTANCE="${CLEANUP_INSTANCE:-0}"
+
+# Copy any files from OSGI_CONFIGS_DIR into the running Liferay's
+# osgi/configs/ directory at the start of the run. ConfigAdmin picks them up
+# automatically. Off by default; set to 1 (or pass --copy-osgi-configs) to
+# enable.
+COPY_OSGI_CONFIGS="${COPY_OSGI_CONFIGS:-0}"
+OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
+
+# Extended regex matched against ERROR/WARN header lines in the Liferay log
+# during bundle-log capture. Matching blocks are dropped before counting and
+# summarizing. Set to a pattern to suppress known false positives.
+LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-}"
+
+# -----------------------------------------------------------------------------
+# Portal
+# -----------------------------------------------------------------------------
+
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+USERNAME="${USERNAME:-test@liferay.com}"
+PASSWORD="${PASSWORD:-test}"
+
+# -----------------------------------------------------------------------------
+# Source company & site (compare.sh)
+# -----------------------------------------------------------------------------
+
+SOURCE_COMPANY_WEB_ID="${SOURCE_COMPANY_WEB_ID:-liferay.com}"
+SOURCE_GROUP_ID="${SOURCE_GROUP_ID:-10182}"
+SOURCE_PRIVATE_LAYOUT="${SOURCE_PRIVATE_LAYOUT:-false}"
+SOURCE_PLID="${SOURCE_PLID:-10176}"
+
+# -----------------------------------------------------------------------------
+# Source DB (compare.sh)
+# -----------------------------------------------------------------------------
+
+SRC_DB_HOST="${SRC_DB_HOST:-localhost}"
+SRC_DB_PORT="${SRC_DB_PORT:-3306}"
+SRC_DB_NAME="${SRC_DB_NAME:-lportal}"
+SRC_DB_USER="${SRC_DB_USER:-liferay}"
+SRC_DB_PASS="${SRC_DB_PASS:-liferay}"
+
+# -----------------------------------------------------------------------------
+# Target company & site (compare.sh)
+# -----------------------------------------------------------------------------
+
+TARGET_COMPANY_WEB_ID="${TARGET_COMPANY_WEB_ID:-${SOURCE_COMPANY_WEB_ID}}"
+
+# Defaults for the new instance created in mode=create.
+# Defaults end with .localhost so the virtual host resolves to 127.0.0.1 on
+# any modern OS (RFC 6761) without touching /etc/hosts.
+NEW_INSTANCE_WEB_ID="${NEW_INSTANCE_WEB_ID:-importtest-${RUN_ID}.localhost}"
+NEW_INSTANCE_VIRTUAL_HOST="${NEW_INSTANCE_VIRTUAL_HOST:-importtest-${RUN_ID}.localhost}"
+NEW_INSTANCE_MAIL_DOMAIN="${NEW_INSTANCE_MAIL_DOMAIN:-importtest-${RUN_ID}.localhost}"
+NEW_INSTANCE_ADMIN_PASSWORD="${NEW_INSTANCE_ADMIN_PASSWORD:-test}"
+NEW_INSTANCE_ADMIN_SCREEN_NAME="${NEW_INSTANCE_ADMIN_SCREEN_NAME:-test}"
+NEW_INSTANCE_ADMIN_EMAIL="${NEW_INSTANCE_ADMIN_EMAIL:-test@${NEW_INSTANCE_MAIL_DOMAIN}}"
+NEW_INSTANCE_ADMIN_FIRST_NAME="${NEW_INSTANCE_ADMIN_FIRST_NAME:-Test}"
+NEW_INSTANCE_ADMIN_LAST_NAME="${NEW_INSTANCE_ADMIN_LAST_NAME:-Test}"
+
+NEW_SITE_NAME="${NEW_SITE_NAME:-Imported Site ${RUN_ID}}"
+
+# -----------------------------------------------------------------------------
+# Target DB (compare.sh)
+# -----------------------------------------------------------------------------
+
+TGT_DB_HOST="${TGT_DB_HOST:-localhost}"
+TGT_DB_PORT="${TGT_DB_PORT:-3306}"
+TGT_DB_NAME="${TGT_DB_NAME:-lportal}"
+TGT_DB_USER="${TGT_DB_USER:-liferay}"
+TGT_DB_PASS="${TGT_DB_PASS:-liferay}"
+
+# -----------------------------------------------------------------------------
+# Assets
+# -----------------------------------------------------------------------------
+
+# Comma-separated list of asset IDs to include. Use "all" to include every
+# registered asset, or "all,-blogs" to subtract from "all". See
+# config/asset_catalog.sh for the catalog of supported assets, or run
+# `lfimex --list-assets`.
+ASSETS="${ASSETS:-all}"
+
+# Comma-separated list of items migrated at the Global level before the
+# site cycle, only in INSTANCE_MODE=create. Entries are either:
+#   - IDs registered via global_register (e.g. Expando "custom_fields"), or
+#   - IDs registered via asset_register (documents_and_media, web_content,
+#     fragments, …) — these reuse the asset's portlet + extras but with the
+#     source/target Global site as the form's groupId.
+# Use "all" for every globals_register entry plus every asset_register entry
+# that has a portlet; use "all,-blogs" to subtract from that.
+GLOBAL_ASSETS="${GLOBAL_ASSETS:-all}"
+
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
+
+# Comma-separated names of compare.sh tests run once at the end of the
+# pipeline (after the per-asset validate phase) as a "site-wide" pass. Each
+# entry must correspond to a test file in lib/tests/<name>.sh. Use this for
+# tests that aren't tied to a single asset — friendly_url is the canonical
+# example, since friendly URLs exist for many entity types at once.
+EXTRA_TESTS="${EXTRA_TESTS:-friendly_url}"
+
+# Comma-separated "<test>:<label>" patterns whose checks compare.sh should
+# skip. Use "*:<label>" to match the label in any test. Substring match on
+# the label. The --ignore-tests CLI flag appends to this list (doesn't
+# replace it), so a baseline of well-known false positives lives here and
+# one-off run-specific patterns can be added on the command line. Example:
+#
+#   IGNORE_TESTS="documents_and_media:DLFileEntryMetadata – Identifiers,documents_and_media:DLFileEntryType"
+IGNORE_TESTS="${IGNORE_TESTS:-}"
+
+# =============================================================================
+# Catalog wiring
+# =============================================================================
+# The list of supported site assets lives in config/asset_catalog.sh (its own
+# file so it can be checked into git while config.sh stays per-developer).
+# Selection of which assets actually run happens via ASSETS / GLOBAL_ASSETS
+# above (or --assets / --global-assets on the CLI).
+# =============================================================================
+
+if ! declare -F asset_register >/dev/null 2>&1; then
+  # shellcheck disable=SC1091
+  source "${PROJECT_DIR}/lib/assets.sh"
+fi
+if ! declare -F global_register >/dev/null 2>&1; then
+  # shellcheck disable=SC1091
+  source "${PROJECT_DIR}/lib/globals.sh"
+fi
+
+# shellcheck source=asset_catalog.sh
+source "${PROJECT_DIR}/config/asset_catalog.sh"

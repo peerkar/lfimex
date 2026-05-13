@@ -1,0 +1,265 @@
+#!/bin/bash
+# lfimex — Liferay export/import CLI.
+#
+# Drives the full pipeline: export a source site, optionally create a fresh
+# target instance + site, migrate global dependencies, import the LAR, and
+# (when used as a validation tool) run DB-level comparisons. Per-step results
+# are accumulated and printed at the end.
+#
+# Usable from anywhere — install with `ln -s /path/to/lfimex ~/.local/bin/`
+# (or similar) and run `lfimex …` from any directory. The readlink step below
+# makes the sibling config/ and lib/ directories findable even when invoked
+# through a symlink.
+
+set -euo pipefail
+
+_SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+PROJECT_DIR="$(dirname "${_SELF}")"
+export PROJECT_DIR
+
+# shellcheck source=config/config.sh
+source "${PROJECT_DIR}/config/config.sh"
+# shellcheck source=lib/common.sh
+source "${PROJECT_DIR}/lib/common.sh"
+# shellcheck source=lib/bundle_log.sh
+source "${PROJECT_DIR}/lib/bundle_log.sh"
+# shellcheck source=lib/result.sh
+source "${PROJECT_DIR}/lib/result.sh"
+# shellcheck source=lib/step_export.sh
+source "${PROJECT_DIR}/lib/step_export.sh"
+# shellcheck source=lib/step_instance.sh
+source "${PROJECT_DIR}/lib/step_instance.sh"
+# shellcheck source=lib/step_site.sh
+source "${PROJECT_DIR}/lib/step_site.sh"
+# shellcheck source=lib/step_import.sh
+source "${PROJECT_DIR}/lib/step_import.sh"
+# shellcheck source=lib/step_globals.sh
+source "${PROJECT_DIR}/lib/step_globals.sh"
+# shellcheck source=lib/step_validate.sh
+source "${PROJECT_DIR}/lib/step_validate.sh"
+# shellcheck source=lib/step_cleanup.sh
+source "${PROJECT_DIR}/lib/step_cleanup.sh"
+# shellcheck source=lib/step_osgi.sh
+source "${PROJECT_DIR}/lib/step_osgi.sh"
+
+usage() {
+  cat >&2 <<EOF
+Usage: $(basename "$0") [options]
+
+Options:
+  --assets <list>          Comma-separated asset IDs. Default: "all".
+                           Supports "all,-blogs" to subtract from "all".
+  --batch-mode <mode>      How to cycle multiple assets:
+                             per-asset (default) export→import→validate once
+                                       per asset, isolated artifacts.
+                             bundled   single export+import for every asset
+                                       at once; one LAR for all.
+  --cleanup                Tear down the test target after the run.
+                           Drops the new Company in mode=create (cascades),
+                           or only the new site in mode=reuse.
+  --copy-osgi-configs      Copy ${PROJECT_DIR}/config/osgi/* into the portal's
+                           osgi/configs/ at the start of the run so ConfigAdmin
+                           picks them up. Off by default.
+  --export-only            Only run the export phase against the source site
+                           (one LAR per asset in per-asset mode, one LAR for
+                           all in bundled mode). Skips instance creation,
+                           globals, site, import, validate, and cleanup.
+  --filter <name>          Time filter for the export. Values:
+                             all         (default) export every item
+                             date-range  export only items in a date range
+  --from-date <date>       Lower bound (inclusive) for date-range filter.
+                           Accepts YYYY-MM-DD or YYYYMMDD.
+  --global-assets <list>   Comma-separated IDs migrated at the Global level
+                           before the site cycle (mode=create only). Supports
+                           the same "all" / "all,-blogs" syntax as --assets.
+                           Default: see GLOBAL_ASSETS in config/config.sh.
+  --ignore-tests <patterns>
+                           Comma-separated "<test>:<label>" patterns whose
+                           checks should be skipped. Use "*:<label>" to match
+                           any test. Substring match on the label. Appends to
+                           IGNORE_TESTS from config/config.sh.
+  --instance-mode <mode>   Target portal instance for the import:
+                             reuse   (default) use the source company
+                             create  spin up a fresh company via blade sh +
+                                     lib/groovy/create-instance.groovy
+  --list-assets            Print the registered asset catalog and exit.
+  --skip-validation        Run the full export → instance → globals → site →
+                           import flow but skip the DB-level validation phase.
+                           Useful when using this tool as a plain export/import
+                           pipeline rather than a validator.
+  --to-date <date>         Upper bound (inclusive) for date-range filter.
+  -h, --help               Show this help.
+
+Environment overrides: see config/config.sh.
+EOF
+}
+
+ASSETS_ARG="${ASSETS}"
+FILTER="${FILTER:-all}"
+FROM_DATE=""
+TO_DATE=""
+# Seed from config; --ignore-tests appends so a curated baseline in
+# config.sh can coexist with one-off run-specific patterns.
+IGNORE_PATTERNS="${IGNORE_TESTS:-}"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --assets) ASSETS_ARG="$2"; shift 2 ;;
+    --global-assets) GLOBAL_ASSETS="$2"; shift 2 ;;
+    --filter) FILTER="$2"; shift 2 ;;
+    --from-date) FROM_DATE="$2"; shift 2 ;;
+    --to-date) TO_DATE="$2"; shift 2 ;;
+    --ignore-tests)
+      if [ -n "${IGNORE_PATTERNS}" ]; then
+        IGNORE_PATTERNS="${IGNORE_PATTERNS},$2"
+      else
+        IGNORE_PATTERNS="$2"
+      fi
+      shift 2
+      ;;
+    --instance-mode) INSTANCE_MODE="$2"; shift 2 ;;
+    --cleanup) CLEANUP_INSTANCE=1; shift ;;
+    --batch-mode) BATCH_MODE="$2"; shift 2 ;;
+    --export-only) EXPORT_ONLY=1; shift ;;
+    --skip-validation) SKIP_VALIDATION=1; shift ;;
+    --copy-osgi-configs) COPY_OSGI_CONFIGS=1; shift ;;
+    --list-assets)
+      printf '%-18s %-30s %-22s %s\n' "ID" "LABEL" "VALIDATION TEST" "PORTLET"
+      printf '%-18s %-30s %-22s %s\n' "------------------" "------------------------------" "----------------------" "-------"
+      while IFS= read -r id; do
+        printf '%-18s %-30s %-22s %s\n' \
+          "${id}" "${ASSET_LABEL[${id}]}" \
+          "${ASSET_TEST[${id}]:--}" \
+          "${ASSET_PORTLET[${id}]:--}"
+      done < <(asset_ids)
+      exit 0
+      ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+case "${FILTER}" in
+  all)
+    if [ -n "${FROM_DATE}" ] || [ -n "${TO_DATE}" ]; then
+      die "--from-date/--to-date require --filter date-range"
+    fi
+    ;;
+  date-range)
+    [ -n "${FROM_DATE}" ] || die "--filter date-range requires --from-date"
+    [ -n "${TO_DATE}" ] || die "--filter date-range requires --to-date"
+    FROM_DATE="$(normalize_date "${FROM_DATE}")"
+    TO_DATE="$(normalize_date "${TO_DATE}")"
+    date -d "${FROM_DATE}" >/dev/null 2>&1 || die "Invalid --from-date: ${FROM_DATE}"
+    date -d "${TO_DATE}" >/dev/null 2>&1 || die "Invalid --to-date: ${TO_DATE}"
+    if [ "$(date -d "${FROM_DATE}" +%s)" -gt "$(date -d "${TO_DATE}" +%s)" ]; then
+      die "--from-date (${FROM_DATE}) is after --to-date (${TO_DATE})"
+    fi
+    ;;
+  *) die "Unknown --filter: ${FILTER}. Valid: all, date-range." ;;
+esac
+
+case "${BATCH_MODE}" in
+  per-asset|bundled) ;;
+  *) die "Unknown --batch-mode: ${BATCH_MODE}. Valid: per-asset, bundled." ;;
+esac
+
+# Verify mysql / curl / blade (conditionally) are on PATH before doing
+# anything else — otherwise the first DB query or Groovy invocation fails
+# with a confusing "command not found" deep inside a step.
+require_tools
+
+# The settings above are plain shell variables. lib/*.sh and config/config.sh
+# are sourced into this same shell, so they see them without any export.
+# External tools (curl, mysql, blade) get only the args we explicitly pass.
+
+mapfile -t SELECTED_ASSETS < <(assets_resolve "${ASSETS_ARG}")
+if [ "${#SELECTED_ASSETS[@]}" -eq 0 ]; then
+  die "No assets selected. Try --list-assets."
+fi
+
+# Fail fast before we create any artifacts when the portal can't be reached.
+if ! portal_check; then
+  die "Cannot reach ${BASE_URL}/web/guest. Is the Liferay portal running?"
+fi
+
+result_init
+log_info "Run ID ${RUN_ID} starting"
+log_info "Assets to test: ${SELECTED_ASSETS[*]}"
+log_info "Results directory: ${RUN_DIR}"
+
+session_init
+session_login
+
+TOTAL_TIMER=$(timer_start)
+
+# --export-only short-circuits the pipeline: produce LARs from the source
+# site and stop. The OSGi configs, instance, globals, site, import, validate,
+# and cleanup steps all target the destination, so none of them are needed.
+if [ "${EXPORT_ONLY:-0}" != "1" ]; then
+  if [ "${COPY_OSGI_CONFIGS:-0}" = "1" ]; then
+    run_step osgi_configs    step_osgi     || true
+  fi
+  run_step create_instance step_instance || true
+
+  # Open a session against the target instance so step_site / step_import /
+  # step_cleanup route to the right Liferay company. In create mode this is the
+  # newly minted company's virtual host; in reuse mode it equals the source.
+  if [ -n "${TARGET_BASE_URL:-}" ]; then
+    session_login_target
+  fi
+
+  # Migrate company-wide dependencies (custom fields, etc) before site assets
+  # so the asset imports can resolve their references. No-op in reuse mode.
+  run_step globals         step_globals  || true
+
+  run_step create_site     step_site     || true
+fi
+
+if [ "${BATCH_MODE}" = "per-asset" ]; then
+  for _asset in "${SELECTED_ASSETS[@]}"; do
+    ASSET_TAG="${_asset}"
+    EXPORT_LAR_PATH=""
+    run_step "export:${_asset}"   step_export   "${_asset}" || true
+    if [ "${EXPORT_ONLY:-0}" != "1" ]; then
+      run_step "import:${_asset}"   step_import   "${_asset}" || true
+      if [ "${SKIP_VALIDATION:-0}" != "1" ]; then
+        run_step "validate:${_asset}" step_validate "${_asset}" || true
+      fi
+    fi
+    unset ASSET_TAG
+  done
+else
+  run_step export   step_export   "${SELECTED_ASSETS[@]}" || true
+  if [ "${EXPORT_ONLY:-0}" != "1" ]; then
+    run_step import   step_import   "${SELECTED_ASSETS[@]}" || true
+    if [ "${SKIP_VALIDATION:-0}" != "1" ]; then
+      run_step validate step_validate "${SELECTED_ASSETS[@]}" || true
+    fi
+  fi
+fi
+
+if [ "${EXPORT_ONLY:-0}" != "1" ] && [ "${SKIP_VALIDATION:-0}" != "1" ]; then
+  # Site-wide validation tests run once at the end. Configured via EXTRA_TESTS
+  # in config/config.sh — each entry is a test name (lib/tests/<name>.sh).
+  EXTRAS=()
+  IFS=',' read -ra _extras_arr <<< "${EXTRA_TESTS:-}"
+  for _t in "${_extras_arr[@]}"; do
+    _t="${_t#[[:space:]]}"; _t="${_t%[[:space:]]}"
+    [ -n "${_t}" ] && EXTRAS+=("${_t}")
+  done
+  unset _extras_arr _t
+  if [ "${#EXTRAS[@]}" -gt 0 ]; then
+    run_step validate:extras step_validate_extras "${EXTRAS[@]}" || true
+  fi
+fi
+
+if [ "${EXPORT_ONLY:-0}" != "1" ]; then
+  run_step cleanup step_cleanup || true
+fi
+
+result_add "TOTAL" "-" "$(timer_elapsed "${TOTAL_TIMER}")" "" "Run ${RUN_ID}"
+result_print
+result_grand_summary
+GRAND_RC=$?
+exit "${GRAND_RC}"
