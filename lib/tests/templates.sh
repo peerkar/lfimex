@@ -24,7 +24,8 @@ test_templates() {
             COUNT(*)        AS total
         FROM DDMTemplate
         WHERE groupId         = __GROUPID__
-          AND ctCollectionId  = 0;
+          AND ctCollectionId  = 0
+          $(date_filter modifiedDate);
     "
 
     check "DDMTemplate – Count by type" "
@@ -37,6 +38,7 @@ test_templates() {
           ON cn.classNameId     = t.classNameId
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         GROUP BY cn.value, t.type_
         ORDER BY cn.value, t.type_;
     "
@@ -49,6 +51,7 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -61,6 +64,7 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -77,6 +81,7 @@ test_templates() {
           ON cn.classNameId     = t.classNameId
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -88,6 +93,7 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -101,6 +107,7 @@ test_templates() {
               AND ds.ctCollectionId = 0
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -112,6 +119,7 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -131,6 +139,7 @@ test_templates() {
           ON cn.classNameId     = tl.classNameId
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter t.modifiedDate)
         GROUP BY cn.value
         ORDER BY cn.value;
     "
@@ -149,6 +158,7 @@ test_templates() {
              AND tv.ctCollectionId = 0
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter tv.modifiedDate)
         GROUP BY t.externalReferenceCode
         ORDER BY t.externalReferenceCode;
     "
@@ -169,6 +179,7 @@ test_templates() {
              )
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter tv.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -189,6 +200,7 @@ test_templates() {
              )
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          $(date_filter tv.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
 
@@ -201,7 +213,8 @@ test_templates() {
             COUNT(*)        AS total_information_templates
         FROM TemplateEntry
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "TemplateEntry – Identifiers" "
@@ -211,6 +224,7 @@ test_templates() {
         FROM TemplateEntry
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -226,6 +240,7 @@ test_templates() {
              AND dt.ctCollectionId  = 0
         WHERE te.groupId        = __GROUPID__
           AND te.ctCollectionId = 0
+          $(date_filter te.modifiedDate)
         ORDER BY te.externalReferenceCode;
     "
 
@@ -240,6 +255,7 @@ test_templates() {
              AND dt.ctCollectionId  = 0
         WHERE te.groupId        = __GROUPID__
           AND te.ctCollectionId = 0
+          $(date_filter te.modifiedDate)
         ORDER BY te.externalReferenceCode;
     "
 
@@ -251,6 +267,7 @@ test_templates() {
         FROM TemplateEntry
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 }

@@ -14,6 +14,10 @@ step_export() {
   timer=$(timer_start)
   log_offset=$(bundle_log_mark)
 
+  # Previous asset's BackgroundTask may have run for hours; the source session
+  # has almost certainly timed out. Re-login so the action POST is accepted.
+  session_refresh
+
   # ASSET_TAG is set by per-asset orchestration to keep each cycle's artifacts
   # separate. When empty, filenames stay at their original "export.*" form.
   local tag_file tag_id
@@ -23,7 +27,9 @@ step_export() {
 
   log_info "Exporting site ${SOURCE_GROUP_ID} (assets: ${asset_list[*]})"
 
-  local export_filename="SiteExport-${RUN_ID}${tag_id}.lar"
+  # Liferay appends "-<timestamp>.lar" to whatever exportFileName we submit,
+  # so don't pre-attach ".lar" — we'd end up with "...lar-<ts>.lar".
+  local export_filename="SiteExport-${RUN_ID}${tag_id}"
   local action_url="${BASE_URL}/group/guest/~/control_panel/manage"
   action_url+="?p_p_id=${EXPORT_PORTLET_ID}"
   action_url+="&p_p_lifecycle=1"
@@ -38,16 +44,21 @@ step_export() {
   redirect_url+="&p_p_state=maximized"
   redirect_url+="&p_p_mode=view"
 
-  # The layout-tree fields (rootLayoutId / rootLayoutIncluded / layoutIdMap /
-  # pagesToExport) used to be unconditional here. They moved into the
-  # `site_pages` asset's extras so site pages are selectable like any other
-  # asset — when site_pages isn't in --assets, the export still runs but
-  # carries no Layout rows.
+  # ExportLayoutsMVCActionCommand doesn't read layoutIds / rootLayoutId from
+  # form params — it reads them from a per-user PortalPreference populated by
+  # SessionTreeJSClicks (i.e. the layout tree's checkbox state in the UI). The
+  # action's setLayoutIdMap step asks getOpenNodes(treeId + "SelectedNode").
+  # We use the same treeId Liferay's JSP would compute and prime the
+  # selection ourselves below, then submit treeId so the action looks at the
+  # right key.
+  local tree_id="layoutsExportTree${SOURCE_GROUP_ID}${SOURCE_PRIVATE_LAYOUT}"
+
   local -a fields=(
     -F "${ns}redirect=${redirect_url}"
     -F "${ns}groupId=${SOURCE_GROUP_ID}"
     -F "${ns}liveGroupId=${SOURCE_GROUP_ID}"
     -F "${ns}privateLayout=${SOURCE_PRIVATE_LAYOUT}"
+    -F "${ns}treeId=${tree_id}"
     -F "${ns}cmd=export"
     -F "${ns}exportFileName=${export_filename}"
     -F "${ns}name=${export_filename}"
@@ -95,6 +106,19 @@ step_export() {
     fi
   done < <(asset_form_fields "${ns}" "${asset_list[@]}")
 
+  # If site_pages is selected, prime the layout-tree selection. The export
+  # action reads which layouts to ship from PortalPreferences via
+  # SessionTreeJSClicks, not from form params — without this, no Layout rows
+  # land in the LAR.
+  local a
+  for a in "${asset_list[@]}"; do
+    if [ "${a}" = "site_pages" ]; then
+      _prime_layout_tree_selection "${tree_id}" || \
+        log_warn "Failed to prime layout tree selection; site pages may not export."
+      break
+    fi
+  done
+
   local pre_task_id
   pre_task_id="$(mysql_q "SELECT IFNULL(MAX(backgroundTaskId),0) FROM BackgroundTask;")"
   log_info "BackgroundTask max id before POST: ${pre_task_id}"
@@ -111,7 +135,7 @@ step_export() {
   done
   if [ -z "${task_id}" ] || [ "${task_id}" = "NULL" ]; then
     status="fail"; details="action did not create a BackgroundTask"
-    _step_export_finish "${timer}" "${log_offset}" "${log_file}" "${status}" "${details}" ""
+    _step_export_finish "${timer}" "${log_offset}" "${log_file}" "${status}" "${details}" "" "${tag_file}"
     return 1
   fi
   log_info "Tracking export BackgroundTask ${task_id}"
@@ -139,18 +163,27 @@ step_export() {
   done
 
   if [ "${status}" = "ok" ]; then
+    # The DB poll above can run for hours; refresh the session so the LAR
+    # download doesn't silently get a login-redirect HTML page saved as .lar.
+    session_refresh
     local row
-    row="$(mysql_q "SELECT uuid_, fileName, groupId FROM DLFileEntry WHERE fileName LIKE 'SiteExport-${RUN_ID}${tag_id}%' ORDER BY fileEntryId DESC LIMIT 1;")"
+    row="$(mysql_q "SELECT uuid_, fileName, groupId FROM DLFileEntry WHERE fileName LIKE '${export_filename}%' ORDER BY fileEntryId DESC LIMIT 1;")"
     if [ -n "${row}" ]; then
       local uuid name group
       read -r uuid name group <<< "${row}"
-      lar_path="${RUN_DIR}/${name}"
+      # Strip Liferay's appended "-<timestamp>.lar" by saving locally under our
+      # submitted name so artifacts on disk match what we asked for.
+      lar_path="${RUN_DIR}/${export_filename}.lar"
       portal_curl "${lar_path}" "${BASE_URL}/documents/portlet_file_entry/${group}/${name}/${uuid}?download=true"
       if [ ! -s "${lar_path}" ]; then
         status="fail"; details="LAR download empty"
+      elif ! _is_lar_file "${lar_path}"; then
+        # A 200 OK can still be the login page — fail loud instead of letting
+        # an HTML "LAR" sail into the import step.
+        status="fail"; details="LAR download is not a ZIP (likely login redirect; session expired?)"
       else
         EXPORT_LAR_PATH="${lar_path}"
-        details="${name} ($(du -h "${lar_path}" | awk '{print $1}'))"
+        details="${export_filename}.lar ($(du -h "${lar_path}" | awk '{print $1}'))"
       fi
     else
       status="fail"; details="LAR DLFileEntry not found"
@@ -161,8 +194,34 @@ step_export() {
   [ "${status}" = "ok" ]
 }
 
+# Tell Liferay the layout tree is fully checked. The export action reads
+# selected nodes from PortalPreferences via SessionTreeJSClicks; populating it
+# is the same operation the Liferay UI performs when the user clicks the
+# "all pages" checkbox in the export dialog. cmd=layoutCheck + plid=0 means
+# "the synthetic root", and the struts action then recursively records every
+# layoutId under that root in PortalPreferences. The export action looks them
+# up under treeId + "SelectedNode", so that's the suffix we pass here.
+#
+# This is a no-op idempotent operation: calling it twice just re-records the
+# same set, so we don't need to clean up after ourselves.
+_prime_layout_tree_selection() {
+  local tree_id="$1"
+  local url="${BASE_URL}/c/portal/session_tree_js_click"
+  local response
+  response=$(curl -sS -b "${COOKIE_JAR}" \
+    -d "p_auth=${P_AUTH}" \
+    -d "cmd=layoutCheck" \
+    -d "plid=0" \
+    -d "groupId=${SOURCE_GROUP_ID}" \
+    -d "privateLayout=${SOURCE_PRIVATE_LAYOUT}" \
+    -d "treeId=${tree_id}SelectedNode" \
+    "${url}" 2>&1) || { log_warn "session_tree_js_click failed: ${response}"; return 1; }
+  log_info "Primed layout tree selection (treeId=${tree_id}SelectedNode)"
+}
+
 _step_export_finish() {
-  local timer="$1" log_offset="$2" log_file="$3" status="$4" details="$5" task_id="$6" tag_file="$7"
+  # tag_file defaults to empty when an early-exit caller can't compute it yet.
+  local timer="$1" log_offset="$2" log_file="$3" status="$4" details="$5" task_id="$6" tag_file="${7:-}"
   local elapsed logsum
   elapsed=$(timer_elapsed "${timer}")
   bundle_log_collect "${log_offset}" "${log_file}"

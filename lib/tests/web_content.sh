@@ -30,7 +30,8 @@ test_web_content() {
           AND classNameId    = (
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
-          );
+          )
+          $(date_filter modifiedDate);
     "
 
     check "DDMStructure – Identifiers" "
@@ -45,6 +46,7 @@ test_web_content() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
           )
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -60,6 +62,7 @@ test_web_content() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
           )
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -74,6 +77,7 @@ test_web_content() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
           )
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -89,6 +93,7 @@ test_web_content() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
           )
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -104,6 +109,7 @@ test_web_content() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
           )
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -355,19 +361,31 @@ test_web_content() {
     check "JournalArticleResource – Total count" "
         SELECT
             COUNT(*)        AS total_resources
-        FROM JournalArticleResource
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+        FROM JournalArticleResource jar
+        WHERE jar.groupId        = __GROUPID__
+          AND jar.ctCollectionId = 0
+          AND EXISTS (
+              SELECT 1 FROM JournalArticle ja
+              WHERE ja.resourcePrimKey = jar.resourcePrimKey
+                AND ja.ctCollectionId  = 0
+                $(date_filter ja.modifiedDate)
+          );
     "
 
     check "JournalArticleResource – Identifiers" "
         SELECT
-            articleId,
-            uuid_
-        FROM JournalArticleResource
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-        ORDER BY articleId;
+            jar.articleId,
+            jar.uuid_
+        FROM JournalArticleResource jar
+        WHERE jar.groupId        = __GROUPID__
+          AND jar.ctCollectionId = 0
+          AND EXISTS (
+              SELECT 1 FROM JournalArticle ja
+              WHERE ja.resourcePrimKey = jar.resourcePrimKey
+                AND ja.ctCollectionId  = 0
+                $(date_filter ja.modifiedDate)
+          )
+        ORDER BY jar.articleId;
     "
 
     # =========================================================================

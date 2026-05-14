@@ -15,7 +15,8 @@ test_categories() {
             COUNT(*)        AS total
         FROM AssetVocabulary
         WHERE groupId          = __GROUPID__
-          AND ctCollectionId   = 0;
+          AND ctCollectionId   = 0
+          $(date_filter modifiedDate);
     "
 
     check "AssetVocabulary – Identifiers" "
@@ -25,6 +26,7 @@ test_categories() {
         FROM AssetVocabulary
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -35,6 +37,7 @@ test_categories() {
         FROM AssetVocabulary
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -47,6 +50,7 @@ test_categories() {
         FROM AssetVocabulary
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -58,6 +62,7 @@ test_categories() {
         FROM AssetVocabulary
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -69,6 +74,7 @@ test_categories() {
         FROM AssetVocabulary
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -81,7 +87,8 @@ test_categories() {
             COUNT(*)        AS total
         FROM AssetCategory
         WHERE groupId          = __GROUPID__
-          AND ctCollectionId   = 0;
+          AND ctCollectionId   = 0
+          $(date_filter modifiedDate);
     "
 
     check "AssetCategory – Count per vocabulary" "
@@ -94,6 +101,7 @@ test_categories() {
              AND c.ctCollectionId = 0
         WHERE v.groupId        = __GROUPID__
           AND v.ctCollectionId = 0
+          $(date_filter c.modifiedDate)
         GROUP BY v.externalReferenceCode
         ORDER BY v.externalReferenceCode;
     "
@@ -105,6 +113,7 @@ test_categories() {
         FROM AssetCategory
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -115,6 +124,7 @@ test_categories() {
         FROM AssetCategory
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -127,6 +137,7 @@ test_categories() {
         FROM AssetCategory
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -137,6 +148,7 @@ test_categories() {
         FROM AssetCategory
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -148,6 +160,7 @@ test_categories() {
         FROM AssetCategory
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -162,6 +175,7 @@ test_categories() {
              AND c.ctCollectionId = 0
         WHERE v.groupId        = __GROUPID__
           AND v.ctCollectionId = 0
+          $(date_filter c.modifiedDate)
         GROUP BY v.externalReferenceCode, is_root
         ORDER BY v.externalReferenceCode, is_root DESC;
     "
@@ -181,6 +195,7 @@ test_categories() {
              AND p.ctCollectionId  = 0
         WHERE v.groupId        = __GROUPID__
           AND v.ctCollectionId = 0
+          $(date_filter c.modifiedDate)
         ORDER BY v.externalReferenceCode, c.externalReferenceCode;
     "
 
@@ -198,6 +213,7 @@ test_categories() {
              AND rel.ctCollectionId = 0
         WHERE v.groupId        = __GROUPID__
           AND v.ctCollectionId = 0
+          $(date_filter c.modifiedDate)
         GROUP BY v.name, c.name
         ORDER BY v.name, c.name;
     "
@@ -221,6 +237,7 @@ test_categories() {
           ON cn.classNameId    = ae.classNameId
         WHERE v.groupId        = __GROUPID__
           AND v.ctCollectionId = 0
+          $(date_filter c.modifiedDate)
         GROUP BY v.externalReferenceCode, cn.value
         ORDER BY v.externalReferenceCode, cn.value;
     "

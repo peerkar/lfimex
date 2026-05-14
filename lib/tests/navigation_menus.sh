@@ -22,7 +22,8 @@ test_navigation_menus() {
             COUNT(*)        AS total_menus
         FROM SiteNavigationMenu
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "SiteNavigationMenu – Count by type" "
@@ -32,6 +33,7 @@ test_navigation_menus() {
         FROM SiteNavigationMenu
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         GROUP BY type_
         ORDER BY type_;
     "
@@ -44,6 +46,7 @@ test_navigation_menus() {
         FROM SiteNavigationMenu
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -54,6 +57,7 @@ test_navigation_menus() {
         FROM SiteNavigationMenu
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -66,6 +70,7 @@ test_navigation_menus() {
         FROM SiteNavigationMenu
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -77,6 +82,7 @@ test_navigation_menus() {
         FROM SiteNavigationMenu
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -89,7 +95,8 @@ test_navigation_menus() {
             COUNT(*)        AS total_menu_items
         FROM SiteNavigationMenuItem
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "SiteNavigationMenuItem – Count per menu" "
@@ -102,6 +109,7 @@ test_navigation_menus() {
              AND m.ctCollectionId   = 0
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
+          $(date_filter mi.modifiedDate)
         GROUP BY m.name
         ORDER BY m.name;
     "
@@ -117,6 +125,7 @@ test_navigation_menus() {
              AND m.ctCollectionId   = 0
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
+          $(date_filter mi.modifiedDate)
         GROUP BY m.name, mi.type_
         ORDER BY m.name, mi.type_;
     "
@@ -132,6 +141,7 @@ test_navigation_menus() {
              AND m.ctCollectionId   = 0
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
+          $(date_filter mi.modifiedDate)
         ORDER BY m.name, mi.externalReferenceCode;
     "
 
@@ -146,6 +156,7 @@ test_navigation_menus() {
              AND m.ctCollectionId   = 0
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
+          $(date_filter mi.modifiedDate)
         ORDER BY m.name, mi.externalReferenceCode;
     "
 
@@ -165,6 +176,7 @@ test_navigation_menus() {
               AND mp.ctCollectionId           = 0
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
+          $(date_filter mi.modifiedDate)
         ORDER BY m.name, mi.order_, mi.externalReferenceCode;
     "
 
@@ -188,6 +200,7 @@ test_navigation_menus() {
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
           AND mi.type_          LIKE '%layout%'
+          $(date_filter mi.modifiedDate)
         ORDER BY m.name, mi.externalReferenceCode;
     "
 
@@ -203,6 +216,7 @@ test_navigation_menus() {
              AND m.ctCollectionId   = 0
         WHERE mi.groupId        = __GROUPID__
           AND mi.ctCollectionId = 0
+          $(date_filter mi.modifiedDate)
         ORDER BY m.name, mi.externalReferenceCode;
     "
 }

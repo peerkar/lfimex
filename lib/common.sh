@@ -13,10 +13,14 @@ die() { log_error "$*"; exit 1; }
 # so the user sees one clean error instead of a cryptic "command not found"
 # halfway through a run. `mysql` and `curl` are always needed; `blade` is
 # only needed when we spin up / tear down a target instance via Groovy.
+# In create mode we also verify portal-ext.properties allows arbitrary virtual
+# hosts — the new company's .localhost vhost is rejected otherwise.
 require_tools() {
   local -a required=(mysql curl)
+  local check_portal_ext=0
   if [ "${INSTANCE_MODE:-reuse}" = "create" ] && [ "${EXPORT_ONLY:-0}" != "1" ]; then
     required+=(blade)
+    check_portal_ext=1
   fi
   if [ "${CLEANUP_INSTANCE:-0}" = "1" ] && [ "${INSTANCE_MODE:-reuse}" = "create" ]; then
     # Already covered by the create branch above, but explicit when create is
@@ -34,6 +38,29 @@ require_tools() {
   done
   if [ "${#missing[@]}" -gt 0 ]; then
     die "Missing required tool(s) on PATH: ${missing[*]}. Install them and retry."
+  fi
+
+  if [ "${check_portal_ext}" = "1" ]; then
+    require_portal_ext_property "virtual.hosts.valid.hosts" "*"
+  fi
+}
+
+# Assert that ${BUNDLES_DIR}/portal-ext.properties sets the given key to the
+# given value (uncommented). Later assignments in a Java properties file
+# override earlier ones, so the last matching line wins.
+require_portal_ext_property() {
+  local key="$1" want="$2"
+  local portal_ext="${BUNDLES_DIR}/portal-ext.properties"
+  if [ ! -f "${portal_ext}" ]; then
+    die "${portal_ext} not found. It must define ${key}=${want}."
+  fi
+  local escaped_key value
+  escaped_key="${key//./\\.}"
+  value="$(grep -E "^[[:space:]]*${escaped_key}[[:space:]]*=" "${portal_ext}" \
+           | tail -n 1 \
+           | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]+$//')"
+  if [ "${value}" != "${want}" ]; then
+    die "${portal_ext} must set '${key}=${want}'. Current value: '${value:-<unset>}'."
   fi
 }
 
@@ -218,6 +245,14 @@ session_login_target() {
   log_info "Logged in as ${TARGET_USERNAME} at ${TARGET_BASE_URL}; p_auth=${TARGET_P_AUTH}"
 }
 
+# Re-issue the source / target login. Use before any HTTP-heavy phase that
+# follows a long wait (a multi-hour BackgroundTask poll is enough to outlast
+# the portal's session timeout — usually 30 min — and the next request would
+# otherwise hit Liferay's login redirect, fail silently, and leave us with
+# no BackgroundTask or, worse, an HTML login page saved as a "LAR").
+session_refresh()        { session_login;        }
+session_refresh_target() { session_login_target; }
+
 _extract_p_auth() {
   printf '%s' "$1" \
     | grep -oE 'authToken[^A-Za-z0-9]+[A-Za-z0-9]{6,}' \
@@ -230,4 +265,16 @@ _extract_p_auth() {
 portal_curl() {
   local out="$1" url="$2"; shift 2
   curl -s -L -b "${COOKIE_JAR}" -o "${out}" --url "${url}" "$@"
+}
+
+# A LAR is a ZIP archive; the magic bytes start with "PK\x03\x04" (or PK\x05\x06
+# for an empty archive). When the session has expired, the portal silently
+# returns the login HTML page with a 200 OK, which would otherwise pass any
+# size-only check downstream. Use this to fail loud instead.
+_is_lar_file() {
+  local f="$1"
+  [ -s "${f}" ] || return 1
+  local magic
+  magic=$(head -c 2 "${f}" 2>/dev/null)
+  [ "${magic}" = "PK" ]
 }

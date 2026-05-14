@@ -175,10 +175,16 @@ _step_globals_export() {
   log_offset=$(bundle_log_mark)
   log_file="${RUN_DIR}/${label//:/_}.bundle.log"
 
+  # Sessions may be stale by the time this runs (esp. between consecutive
+  # globals or after long site tasks); refresh source before the action POST.
+  session_refresh
+
   local ns="_${EXPORT_IMPORT_PORTLET_ID}_"
   local action_url file_name
   action_url="$(_global_action_url source)"
-  file_name="${id}-${RUN_ID}.portlet.lar"
+  # "Global-" prefix marks the LAR as company-wide (vs site-scoped); no ".lar"
+  # suffix because Liferay appends "-<timestamp>.lar" to whatever we submit.
+  file_name="Global-${id}-${RUN_ID}.portlet"
 
   local pre_task_id
   pre_task_id="$(mysql_q "SELECT IFNULL(MAX(backgroundTaskId),0) FROM BackgroundTask;")"
@@ -217,16 +223,22 @@ _step_globals_export() {
 
   local lar_path=""
   if [ "${status}" = "ok" ]; then
+    # Poll above can outlast the session; refresh before downloading the LAR.
+    session_refresh
     local row uuid name group
     row="$(mysql_q "SELECT uuid_, fileName, groupId FROM DLFileEntry WHERE fileName LIKE '${file_name}%' ORDER BY fileEntryId DESC LIMIT 1;")"
     if [ -n "${row}" ]; then
       read -r uuid name group <<< "${row}"
-      lar_path="${RUN_DIR}/${name}"
+      # Save under our submitted name so artifacts on disk match what we asked
+      # for, dropping Liferay's appended "-<timestamp>.lar".
+      lar_path="${RUN_DIR}/${file_name}.lar"
       portal_curl "${lar_path}" "${BASE_URL}/documents/portlet_file_entry/${group}/${name}/${uuid}?download=true"
       if [ ! -s "${lar_path}" ]; then
         status="fail"; details="LAR download empty"
+      elif ! _is_lar_file "${lar_path}"; then
+        status="fail"; details="LAR download is not a ZIP (likely login redirect; session expired?)"
       else
-        details="${name} ($(du -h "${lar_path}" | awk '{print $1}')) (task=${task_id})"
+        details="${file_name}.lar ($(du -h "${lar_path}" | awk '{print $1}')) (task=${task_id})"
         _LAST_GLOBAL_LAR_PATH="${lar_path}"
       fi
     else
@@ -247,6 +259,10 @@ _step_globals_import() {
   timer=$(timer_start)
   log_offset=$(bundle_log_mark)
   log_file="${RUN_DIR}/${label//:/_}.bundle.log"
+
+  # Refresh target session — the matching export just polled the DB (no HTTP),
+  # so the cookie set up by step_instance / session_login_target may be stale.
+  session_refresh_target
 
   local ns="_${EXPORT_IMPORT_PORTLET_ID}_"
   local action_url tgt_plid upload_response

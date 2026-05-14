@@ -16,7 +16,8 @@ test_calendar() {
             COUNT(*)    AS total
         FROM Calendar
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "Calendar – Count per calendar resource" "
@@ -29,6 +30,7 @@ test_calendar() {
              AND cr.ctCollectionId = 0
         WHERE c.groupId = __GROUPID__
           AND c.ctCollectionId = 0
+          $(date_filter c.modifiedDate)
         GROUP BY cr.uuid_
         ORDER BY cr.uuid_;
     "
@@ -39,6 +41,7 @@ test_calendar() {
         FROM Calendar
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -51,6 +54,7 @@ test_calendar() {
         FROM Calendar
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -65,6 +69,7 @@ test_calendar() {
         FROM Calendar
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -76,6 +81,7 @@ test_calendar() {
         FROM Calendar
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -88,7 +94,8 @@ test_calendar() {
             COUNT(*)    AS total_resources
         FROM CalendarResource
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "CalendarResource – Identifiers" "
@@ -100,6 +107,7 @@ test_calendar() {
           ON cn.classNameId = cr.classNameId
         WHERE cr.groupId = __GROUPID__
           AND cr.ctCollectionId = 0
+          $(date_filter cr.modifiedDate)
         ORDER BY cr.uuid_;
     "
 
@@ -111,6 +119,7 @@ test_calendar() {
         FROM CalendarResource
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -121,6 +130,7 @@ test_calendar() {
         FROM CalendarResource
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -132,6 +142,7 @@ test_calendar() {
         FROM CalendarResource
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -146,6 +157,7 @@ test_calendar() {
         FROM CalendarBooking
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         GROUP BY status
         ORDER BY status;
     "
@@ -158,6 +170,7 @@ test_calendar() {
         FROM CalendarBooking
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -170,6 +183,7 @@ test_calendar() {
         FROM CalendarBooking
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -192,6 +206,7 @@ test_calendar() {
         WHERE groupId = __GROUPID__
           AND parentCalendarBookingId = calendarBookingId  -- master bookings only
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -209,6 +224,7 @@ test_calendar() {
              AND cr.ctCollectionId = 0
         WHERE cb.groupId = __GROUPID__
           AND cb.ctCollectionId = 0
+          $(date_filter cb.modifiedDate)
         GROUP BY cr.code_, calendar_name
         ORDER BY cr.code_, calendar_name;
     "
@@ -222,6 +238,7 @@ test_calendar() {
         WHERE groupId = __GROUPID__
           AND parentCalendarBookingId = calendarBookingId  -- master bookings only
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -234,7 +251,8 @@ test_calendar() {
             COUNT(*)            AS total
         FROM CalendarNotificationTemplate
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "CalendarNotificationTemplate – Identifiers" "
@@ -243,6 +261,7 @@ test_calendar() {
         FROM CalendarNotificationTemplate
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -256,6 +275,7 @@ test_calendar() {
              AND c.ctCollectionId = 0
         WHERE cnt.groupId = __GROUPID__
           AND cnt.ctCollectionId = 0
+          $(date_filter cnt.modifiedDate)
         GROUP BY c.uuid_
         ORDER BY c.uuid_;
     "
@@ -268,6 +288,7 @@ test_calendar() {
         FROM CalendarNotificationTemplate
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -281,6 +302,7 @@ test_calendar() {
         FROM CalendarNotificationTemplate
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -292,6 +314,7 @@ test_calendar() {
         FROM CalendarNotificationTemplate
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 }

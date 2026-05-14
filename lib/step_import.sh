@@ -33,6 +33,11 @@ step_import() {
     return 0
   fi
 
+  # The preceding export can run for hours; the target session sat idle the
+  # whole time and is almost certainly expired. Re-login so the upload and
+  # import POSTs aren't silently redirected to the login page.
+  session_refresh_target
+
   local ns="_${IMPORT_PORTLET_ID}_"
   local action_url="${TARGET_BASE_URL}/group/guest/~/control_panel/manage"
   action_url+="?p_p_id=${IMPORT_PORTLET_ID}"

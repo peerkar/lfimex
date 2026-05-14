@@ -21,7 +21,8 @@ test_collections() {
             COUNT(*)    AS total
         FROM AssetListEntry
         WHERE groupId = __GROUPID__
-         AND ctCollectionId = 0;
+         AND ctCollectionId = 0
+         $(date_filter modifiedDate);
     "
 
     check "AssetListEntry – Count by type" "
@@ -31,6 +32,7 @@ test_collections() {
         FROM AssetListEntry
         WHERE groupId = __GROUPID__
          AND ctCollectionId = 0
+         $(date_filter modifiedDate)
         GROUP BY type_
         ORDER BY type_;
     "
@@ -43,6 +45,7 @@ test_collections() {
         FROM AssetListEntry
         WHERE groupId = __GROUPID__
          AND ctCollectionId = 0
+         $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -53,6 +56,7 @@ test_collections() {
         FROM AssetListEntry
         WHERE groupId = __GROUPID__
          AND ctCollectionId = 0
+         $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -64,6 +68,7 @@ test_collections() {
         FROM AssetListEntry
         WHERE groupId = __GROUPID__
          AND ctCollectionId = 0
+         $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -93,6 +98,7 @@ test_collections() {
         FROM AssetListEntry ale
         WHERE ale.groupId = __GROUPID__
            AND ale.ctCollectionId = 0
+           $(date_filter ale.modifiedDate)
         ORDER BY ale.externalReferenceCode;
     "
 
@@ -104,6 +110,7 @@ test_collections() {
         FROM AssetListEntry
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -121,6 +128,7 @@ test_collections() {
              AND rel.ctCollectionId = 0
         WHERE ale.groupId = __GROUPID__
           AND ale.ctCollectionId = 0
+          $(date_filter rel.modifiedDate)
         GROUP BY ale.externalReferenceCode
         ORDER BY ale.externalReferenceCode;
    "
@@ -131,6 +139,7 @@ test_collections() {
         FROM AssetListEntryAssetEntryRel
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -142,6 +151,7 @@ test_collections() {
         FROM AssetListEntryAssetEntryRel
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -156,6 +166,7 @@ test_collections() {
         WHERE ale.groupId = __GROUPID__
           AND ale.ctCollectionId = 0
           AND ale.type_   = 0
+          $(date_filter rel.modifiedDate)
         GROUP BY ale.externalReferenceCode
         ORDER BY ale.externalReferenceCode;
     "
@@ -178,6 +189,7 @@ test_collections() {
         WHERE ale.groupId = __GROUPID__
           AND ale.ctCollectionId = 0
           AND ale.type_   = 0
+          $(date_filter rel.modifiedDate)
         ORDER BY ale.externalReferenceCode, rel.position;
     "
 
@@ -190,7 +202,8 @@ test_collections() {
             COUNT(*)        AS total
         FROM AssetListEntrySegmentsEntryRel
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
    "
 
     check "AssetListEntrySegmentsEntryRel – Priority" "
@@ -200,6 +213,7 @@ test_collections() {
         FROM AssetListEntrySegmentsEntryRel
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -211,6 +225,7 @@ test_collections() {
         FROM AssetListEntrySegmentsEntryRel
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -224,6 +239,7 @@ test_collections() {
              AND ser.ctCollectionId = 0
         WHERE ale.groupId = __GROUPID__
           AND ale.ctCollectionId = 0
+          $(date_filter ser.modifiedDate)
         GROUP BY ale.externalReferenceCode
         ORDER BY ale.externalReferenceCode;
     "
@@ -242,6 +258,7 @@ test_collections() {
              AND se.ctCollectionId = 0
         WHERE ale.groupId = __GROUPID__
           AND ale.ctCollectionId = 0
+          $(date_filter ser.modifiedDate)
         ORDER BY ale.externalReferenceCode, se.segmentsEntryKey;
     "
 }

@@ -203,7 +203,8 @@ test_documents_and_media() {
             COUNT(*)        AS total_file_entry_types
         FROM DLFileEntryType
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "DLFileEntryType – Identifiers" "
@@ -214,6 +215,7 @@ test_documents_and_media() {
         FROM DLFileEntryType
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -225,6 +227,7 @@ test_documents_and_media() {
         FROM DLFileEntryType
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -240,6 +243,7 @@ test_documents_and_media() {
               AND ds.ctCollectionId = 0
         WHERE ft.groupId        = __GROUPID__
           AND ft.ctCollectionId = 0
+          $(date_filter ft.modifiedDate)
         ORDER BY ft.externalReferenceCode;
     "
 
@@ -251,6 +255,7 @@ test_documents_and_media() {
         FROM DLFileEntryType
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -263,7 +268,8 @@ test_documents_and_media() {
             COUNT(*)        AS total_shortcuts
         FROM DLFileShortcut
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "DLFileShortcut – Identifiers" "
@@ -273,6 +279,7 @@ test_documents_and_media() {
         FROM DLFileShortcut
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -288,6 +295,7 @@ test_documents_and_media() {
          AND fe.ctCollectionId = 0
         WHERE fs.groupId        = __GROUPID__
           AND fs.ctCollectionId = 0
+          $(date_filter fs.modifiedDate)
         ORDER BY fs.externalReferenceCode;
     "
 
@@ -299,6 +307,7 @@ test_documents_and_media() {
         FROM DLFileShortcut
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -332,6 +341,7 @@ test_documents_and_media() {
          AND fv.ctCollectionId = 0
         WHERE fe.groupId        = __GROUPID__
           AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode;
     "
 
@@ -346,6 +356,7 @@ test_documents_and_media() {
          AND fv.ctCollectionId = 0
         WHERE fe.groupId        = __GROUPID__
           AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode;
     "
 
@@ -431,6 +442,7 @@ test_documents_and_media() {
               AND f.ctCollectionId = 0
         WHERE fe.groupId        = __GROUPID__
           AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
         GROUP BY folder_erc, folder_name
         ORDER BY folder_erc;
     "
@@ -465,6 +477,7 @@ test_documents_and_media() {
          AND f.ctCollectionId    = 0
         WHERE f.groupId          = __GROUPID__
           AND m.ctCollectionId   = 0
+          $(date_filter f.modifiedDate)
         ORDER BY ft.externalReferenceCode, f.externalReferenceCode;
     "
 }

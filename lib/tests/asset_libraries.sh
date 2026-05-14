@@ -17,7 +17,8 @@ test_asset_libraries() {
             COUNT(*)    AS total
         FROM DepotEntry
         WHERE groupId = __GROUPID__
-            AND ctCollectionId = 0;
+            AND ctCollectionId = 0
+            $(date_filter modifiedDate);
     "
 
     check "DepotEntry – Total count by type" "
@@ -27,6 +28,7 @@ test_asset_libraries() {
         FROM DepotEntry
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         GROUP BY type_
         ORDER BY type_;
     "
@@ -37,6 +39,7 @@ test_asset_libraries() {
         FROM DepotEntry
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -48,6 +51,7 @@ test_asset_libraries() {
         FROM DepotEntry
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -63,7 +67,8 @@ test_asset_libraries() {
           ON de.depotEntryId = rel.depotEntryId
              AND de.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
-            AND rel.ctCollectionId = 0;
+            AND rel.ctCollectionId = 0
+            $(date_filter rel.modifiedDate);
     "
 
     check "DepotEntryGroupRel – Identifiers" "
@@ -75,6 +80,7 @@ test_asset_libraries() {
              AND de.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND rel.ctCollectionId = 0
+            $(date_filter rel.modifiedDate)
         ORDER BY rel.uuid_;
     "
 
@@ -90,6 +96,7 @@ test_asset_libraries() {
              AND de.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND rel.ctCollectionId = 0
+            $(date_filter rel.modifiedDate)
         ORDER BY rel.uuid_;
     "
 
@@ -105,6 +112,7 @@ test_asset_libraries() {
           ON g.groupId = rel.toGroupId
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter rel.modifiedDate)
         ORDER BY de.uuid_, g.groupKey;
     "
 
@@ -119,6 +127,7 @@ test_asset_libraries() {
              AND de.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND rel.ctCollectionId = 0
+            $(date_filter rel.modifiedDate)
         ORDER BY rel.uuid_;
     "
 
@@ -138,6 +147,7 @@ test_asset_libraries() {
              AND dlf.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dlf.modifiedDate)
         GROUP BY de.uuid_
         ORDER BY de.uuid_;
     "
@@ -158,6 +168,7 @@ test_asset_libraries() {
              AND dlfe.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dlfe.modifiedDate)
         GROUP BY de.uuid_
         ORDER BY de.uuid_;
     "
@@ -175,6 +186,7 @@ test_asset_libraries() {
              AND dlfe.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dlfe.modifiedDate)
         ORDER BY dlfe.externalReferenceCode;
     "
 
@@ -192,6 +204,7 @@ test_asset_libraries() {
              AND dlfe.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dlfe.modifiedDate)
         ORDER BY dlfe.externalReferenceCode;
     "
 
@@ -210,6 +223,7 @@ test_asset_libraries() {
              AND dlfe.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dlfe.modifiedDate)
         ORDER BY dlfe.externalReferenceCode;
     "
 
@@ -226,6 +240,7 @@ test_asset_libraries() {
              AND dlfe.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dlfe.modifiedDate)
         ORDER BY dlfe.externalReferenceCode;
     "
 
@@ -245,6 +260,7 @@ test_asset_libraries() {
              AND ds.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter ds.modifiedDate)
         GROUP BY de.uuid_
         ORDER BY de.uuid_;
     "
@@ -261,6 +277,7 @@ test_asset_libraries() {
              AND ds.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter ds.modifiedDate)
         ORDER BY ds.externalReferenceCode;
     "
 
@@ -278,6 +295,7 @@ test_asset_libraries() {
              AND ds.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter ds.modifiedDate)
         ORDER BY ds.externalReferenceCode;
     "
 
@@ -294,6 +312,7 @@ test_asset_libraries() {
              AND ds.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter ds.modifiedDate)
         ORDER BY ds.externalReferenceCode;
     "
 
@@ -310,6 +329,7 @@ test_asset_libraries() {
              AND ds.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter ds.modifiedDate)
         ORDER BY ds.externalReferenceCode;
     "
 
@@ -329,6 +349,7 @@ test_asset_libraries() {
              AND dt.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dt.modifiedDate)
         GROUP BY de.uuid_
         ORDER BY de.uuid_;
     "
@@ -345,6 +366,7 @@ test_asset_libraries() {
              AND dt.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dt.modifiedDate)
         ORDER BY dt.externalReferenceCode;
     "
 
@@ -362,6 +384,7 @@ test_asset_libraries() {
              AND dt.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dt.modifiedDate)
         ORDER BY dt.externalReferenceCode;
     "
 
@@ -380,6 +403,7 @@ test_asset_libraries() {
              AND dt.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dt.modifiedDate)
         ORDER BY dt.externalReferenceCode;
     "
 
@@ -396,6 +420,7 @@ test_asset_libraries() {
              AND dt.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dt.modifiedDate)
         ORDER BY dt.externalReferenceCode;
     "
 
@@ -412,6 +437,7 @@ test_asset_libraries() {
              AND dt.ctCollectionId = 0
         WHERE de.groupId = __GROUPID__
             AND de.ctCollectionId = 0
+            $(date_filter dt.modifiedDate)
         ORDER BY dt.externalReferenceCode;
     "
 }

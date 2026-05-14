@@ -22,7 +22,8 @@ test_fragments() {
             COUNT(*)        AS total_collections
         FROM FragmentCollection
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "FragmentCollection – Identifiers" "
@@ -33,6 +34,7 @@ test_fragments() {
         FROM FragmentCollection
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -46,6 +48,7 @@ test_fragments() {
         FROM FragmentCollection
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -57,6 +60,7 @@ test_fragments() {
         FROM FragmentCollection
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -69,7 +73,8 @@ test_fragments() {
             COUNT(*)        AS total_compositions
         FROM FragmentComposition
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "FragmentComposition – Identifiers" "
@@ -80,6 +85,7 @@ test_fragments() {
         FROM FragmentComposition
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -92,6 +98,7 @@ test_fragments() {
         FROM FragmentComposition
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -106,6 +113,7 @@ test_fragments() {
              AND fcol.ctCollectionId   = 0
         WHERE fc.groupId        = __GROUPID__
           AND fc.ctCollectionId = 0
+          $(date_filter fc.modifiedDate)
         ORDER BY fc.externalReferenceCode;
     "
 
@@ -117,6 +125,7 @@ test_fragments() {
         FROM FragmentComposition
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -128,6 +137,7 @@ test_fragments() {
         FROM FragmentComposition
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -143,6 +153,7 @@ test_fragments() {
           AND ctCollectionId = 0
           AND fragmentCollectionId != 0
           AND head           = 1
+          $(date_filter modifiedDate)
     "
 
     check "FragmentEntry – Count by type" "
@@ -155,6 +166,7 @@ test_fragments() {
           AND fragmentCollectionId != 0
           AND head           = 1
           AND status = 0
+          $(date_filter modifiedDate)
         GROUP BY type_
         ORDER BY type_;
     "
@@ -169,6 +181,7 @@ test_fragments() {
           AND ctCollectionId = 0
           AND fragmentCollectionId != 0
           AND head           = 1
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -181,6 +194,7 @@ test_fragments() {
           AND ctCollectionId = 0
           AND fragmentCollectionId != 0
           AND head           = 1
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -199,6 +213,7 @@ test_fragments() {
           AND fe.ctCollectionId = 0
           AND fe.fragmentCollectionId != 0
           AND fe.head           = 1
+          $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode;
     "
 
@@ -218,6 +233,7 @@ test_fragments() {
           AND ctCollectionId = 0
           AND fragmentCollectionId != 0
           AND head           = 1
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -231,6 +247,7 @@ test_fragments() {
           AND ctCollectionId = 0
           AND fragmentCollectionId != 0
           AND head           = 1
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -243,7 +260,8 @@ test_fragments() {
             COUNT(*)        AS total_entry_links
         FROM FragmentEntryLink
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "FragmentEntryLink – Count per fragment" "
@@ -254,6 +272,7 @@ test_fragments() {
         WHERE fel.groupId        = __GROUPID__
           AND fel.ctCollectionId = 0
           AND fel.fragmentEntryERC IS NOT NULL
+          $(date_filter fel.modifiedDate)
         GROUP BY fel.fragmentEntryERC
         ORDER BY fel.fragmentEntryERC;
     "
@@ -265,6 +284,7 @@ test_fragments() {
         FROM FragmentEntryLink
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -280,6 +300,7 @@ test_fragments() {
         FROM FragmentEntryLink fel
         WHERE fel.groupId        = __GROUPID__
           AND fel.ctCollectionId = 0
+          $(date_filter fel.modifiedDate)
         ORDER BY fel.externalReferenceCode;
     "
 
@@ -291,6 +312,7 @@ test_fragments() {
         FROM FragmentEntryLink
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -302,6 +324,7 @@ test_fragments() {
         FROM FragmentEntryLink
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 }

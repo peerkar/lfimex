@@ -29,7 +29,8 @@ test_friendly_urls() {
             COUNT(*)        AS total_friendly_urls
         FROM FriendlyURLEntry
         WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "FriendlyURLEntry – Count by entity type" "
@@ -41,6 +42,7 @@ test_friendly_urls() {
           ON cn.classNameId  = f.classNameId
         WHERE f.groupId        = __GROUPID__
           AND f.ctCollectionId = 0
+          $(date_filter f.modifiedDate)
         GROUP BY cn.value
         ORDER BY cn.value;
     "
@@ -54,6 +56,7 @@ test_friendly_urls() {
           ON cn.classNameId  = f.classNameId
         WHERE f.groupId        = __GROUPID__
           AND f.ctCollectionId = 0
+          $(date_filter f.modifiedDate)
         ORDER BY cn.value, f.uuid_;
     "
 
@@ -76,6 +79,7 @@ test_friendly_urls() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.portal.kernel.model.Layout'
           )
+          $(date_filter f.modifiedDate)
         ORDER BY l.externalReferenceCode, fel.languageId;
     "
 
@@ -98,6 +102,7 @@ test_friendly_urls() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.blogs.model.BlogsEntry'
           )
+          $(date_filter f.modifiedDate)
         ORDER BY be.externalReferenceCode, fel.languageId;
     "
 
@@ -120,6 +125,7 @@ test_friendly_urls() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.document.library.kernel.model.DLFileEntry'
           )
+          $(date_filter f.modifiedDate)
         ORDER BY fe.externalReferenceCode, fel.languageId;
     "
 
@@ -149,6 +155,7 @@ test_friendly_urls() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.journal.model.JournalArticle'
           )
+          $(date_filter f.modifiedDate)
         ORDER BY ja.externalReferenceCode, fel.languageId;
     "
 
@@ -171,6 +178,7 @@ test_friendly_urls() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.asset.kernel.model.AssetCategory'
           )
+          $(date_filter f.modifiedDate)
         ORDER BY ac.externalReferenceCode, fel.languageId;
     "
 
@@ -194,6 +202,7 @@ test_friendly_urls() {
               SELECT classNameId FROM ClassName_
               WHERE  value = 'com.liferay.wiki.model.WikiPage'
           )
+          $(date_filter f.modifiedDate)
         ORDER BY wp.externalReferenceCode, fel.languageId;
     "
 
@@ -208,6 +217,7 @@ test_friendly_urls() {
           ON cn.classNameId  = f.classNameId
         WHERE f.groupId        = __GROUPID__
           AND f.ctCollectionId = 0
+          $(date_filter f.modifiedDate)
         ORDER BY cn.value, f.uuid_;
     "
 
@@ -223,7 +233,8 @@ test_friendly_urls() {
           ON f.friendlyURLEntryId = fel.friendlyURLEntryId
          AND f.ctCollectionId     = 0
         WHERE f.groupId           = __GROUPID__
-          AND fel.ctCollectionId  = 0;
+          AND fel.ctCollectionId  = 0
+          $(date_filter f.modifiedDate);
     "
 
     check "FriendlyURLEntryLocalization – Count by entity type and language" "
@@ -239,6 +250,7 @@ test_friendly_urls() {
           ON cn.classNameId       = f.classNameId
         WHERE f.groupId           = __GROUPID__
           AND fel.ctCollectionId  = 0
+          $(date_filter f.modifiedDate)
         GROUP BY cn.value, fel.languageId
         ORDER BY cn.value, fel.languageId;
     "
@@ -257,6 +269,7 @@ test_friendly_urls() {
           ON cn.classNameId       = f.classNameId
         WHERE f.groupId           = __GROUPID__
           AND fel.ctCollectionId  = 0
+          $(date_filter f.modifiedDate)
         ORDER BY cn.value, f.uuid_, fel.languageId;
     "
 }

@@ -15,7 +15,8 @@ test_tags() {
             COUNT(*)    AS total
         FROM AssetTag
         WHERE groupId = __GROUPID__
-            AND ctCollectionId = 0;
+            AND ctCollectionId = 0
+            $(date_filter modifiedDate);
     "
 
     check "AssetTag – Identifiers" "
@@ -25,6 +26,7 @@ test_tags() {
         FROM AssetTag
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -35,6 +37,7 @@ test_tags() {
         FROM AssetTag
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -45,6 +48,7 @@ test_tags() {
         FROM AssetTag
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY name;
     "
 
@@ -56,6 +60,7 @@ test_tags() {
         FROM AssetTag
         WHERE groupId = __GROUPID__
             AND ctCollectionId = 0
+            $(date_filter modifiedDate)
         ORDER BY name;
     "
 
@@ -75,6 +80,7 @@ test_tags() {
           ON cn.classNameId = ts.classNameId
         WHERE t.groupId = __GROUPID__
             AND t.ctCollectionId = 0
+            $(date_filter t.modifiedDate)
         ORDER BY t.name, cn.value;
     "
 }

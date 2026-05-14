@@ -29,6 +29,33 @@ global_register custom_fields "Custom Fields" \
   "_expando_expando-table=on
 _expando_expando-column=on"
 
+# These need to be migrated before any site assets, otherwise the site assets that reference them will fail to import.
+# Page templates / "group pages" owned by the site, exported via
+# GroupPagesPortlet. The four toggles map to:
+#   LayoutPageTemplateCollection-0  page-template collections
+#   LayoutPageTemplateEntry-0       page templates (basic / content)
+#   LayoutPageTemplateEntry-1       display page templates
+#   LayoutPageTemplateEntry-3       master pages
+asset_register page_templates "Pages (Page Templates)" \
+  "com_liferay_layout_admin_web_portlet_GroupPagesPortlet" \
+  "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateCollection-0=on
+_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.headless.admin.site.internal.resource.v1_0.UtilityPageResourceImpl=on
+_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-0=on
+_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-1=on
+_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
+  "page_templates"
+
+# Site pages: the actual Layout tree. There are no form fields here because
+# ExportLayoutsMVCActionCommand picks layouts via PortalPreferences/
+# SessionTreeJSClicks, not the parameter map. step_export detects this asset
+# and primes the selection by hitting /c/portal/session_tree_js_click with
+# cmd=layoutCheck + plid=0 before the export POST. When this asset isn't in
+# --assets the export still runs but carries no Layout rows.
+asset_register site_pages "Site Pages" \
+  "" \
+  "" \
+  "site_pages"
+
 asset_register asset_libraries "Asset Libraries" \
   "com_liferay_depot_web_portlet_DepotAdminPortlet" \
   "_depot_site-connections=true" \
@@ -62,11 +89,6 @@ asset_register categories "Categories and Vocabularies" \
 _com_liferay_asset_categories_admin_web_portlet_AssetCategoriesAdminPortlet_com.liferay.headless.admin.taxonomy.internal.resource.v1_0.TaxonomyVocabularyResourceImpl=on" \
   "categories"
 
-asset_register collections "Collections (Asset Lists)" \
-  "com_liferay_asset_list_web_portlet_AssetListPortlet" \
-  "_asset_lists_entries=on" \
-  "collections"
-
 asset_register documents_and_media "Documents and Media" \
   "com_liferay_document_library_web_portlet_DLAdminPortlet" \
   "_document_library_repositories=on
@@ -89,21 +111,6 @@ asset_register fragments "Fragments" \
   "com_liferay_fragment_web_portlet_FragmentPortlet" \
   "_fragments_entries=on" \
   "fragments"
-
-# Page templates / "group pages" owned by the site, exported via
-# GroupPagesPortlet. The four toggles map to:
-#   LayoutPageTemplateCollection-0  page-template collections
-#   LayoutPageTemplateEntry-0       page templates (basic / content)
-#   LayoutPageTemplateEntry-1       display page templates
-#   LayoutPageTemplateEntry-3       master pages
-asset_register page_templates "Pages (Page Templates)" \
-  "com_liferay_layout_admin_web_portlet_GroupPagesPortlet" \
-  "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateCollection-0=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.headless.admin.site.internal.resource.v1_0.UtilityPageResourceImpl=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-0=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-1=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
-  "page_templates"
 
 # asset_register knowledge_base "Knowledge Base" \
 #  "com_liferay_knowledge_base_web_portlet_AdminPortlet" \
@@ -130,17 +137,6 @@ asset_register segments "Segments" \
   "_segments_segments=on" \
   "segments"
 
-# Site pages: the actual Layout tree. layoutIds=[0] is the "everything" form
-# — Liferay's LayoutExporter walks the subtree from layoutId 0 (the synthetic
-# root) which means every page. rootLayoutId / rootLayoutIncluded keep the
-# subtree starting point explicit. When this asset isn't selected the export
-# carries no Layout rows.
-asset_register site_pages "Site Pages" \
-  "" \
-  "rootLayoutId=0
-rootLayoutIncluded=true
-layoutIds=[0]" \
-  ""
 
 asset_register site_settings "Site Settings (logo, theme)" \
   "" \
@@ -192,3 +188,8 @@ _wiki_attachments=on
 _wiki_referenced-content=on
 _wiki_referenced-content-behavior=include-always" \
   "wiki"
+
+asset_register collections "Collections (Asset Lists)" \
+  "com_liferay_asset_list_web_portlet_AssetListPortlet" \
+  "_asset_lists_entries=on" \
+  "collections"

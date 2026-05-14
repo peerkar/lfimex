@@ -17,7 +17,8 @@ test_forms() {
             COUNT(*)        AS total
         FROM DDMFormInstance
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "DDMFormInstance – Identifiers" "
@@ -27,6 +28,7 @@ test_forms() {
         FROM DDMFormInstance
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -39,6 +41,7 @@ test_forms() {
         FROM DDMFormInstance
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -50,6 +53,7 @@ test_forms() {
         FROM DDMFormInstance
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -63,6 +67,7 @@ test_forms() {
              AND ds.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter fi.modifiedDate)
         ORDER BY fi.uuid_;
     "
 
@@ -74,6 +79,7 @@ test_forms() {
         FROM DDMFormInstance
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -86,7 +92,8 @@ test_forms() {
             COUNT(*)        AS total
         FROM DDMFormInstanceRecord
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "DDMFormInstanceRecord – Count per form" "
@@ -99,6 +106,7 @@ test_forms() {
              AND rec.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter rec.modifiedDate)
         GROUP BY fi.uuid_
         ORDER BY fi.uuid_;
     "
@@ -110,6 +118,7 @@ test_forms() {
         FROM DDMFormInstanceRecord
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -121,6 +130,7 @@ test_forms() {
         FROM DDMFormInstanceRecord
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
 
@@ -133,7 +143,8 @@ test_forms() {
             COUNT(*)        AS total
         FROM DDMFormInstanceRecordVersion
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "DDMFormInstanceRecordVersion – Record version count per form" "
@@ -149,6 +160,7 @@ test_forms() {
              AND rv.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter rv.modifiedDate)
         GROUP BY fi.uuid_
         ORDER BY fi.uuid_;
     "
@@ -173,6 +185,7 @@ test_forms() {
              )
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter rv.modifiedDate)
         ORDER BY fi.uuid_, rec.uuid_;
     "
 
@@ -185,7 +198,8 @@ test_forms() {
             COUNT(*)        AS total
         FROM DDMFormInstanceReport
         WHERE groupId = __GROUPID__
-          AND ctCollectionId = 0;
+          AND ctCollectionId = 0
+          $(date_filter modifiedDate);
     "
 
     check "DDMFormInstanceReport – Report count per form" "
@@ -198,6 +212,7 @@ test_forms() {
              AND rpt.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter rpt.modifiedDate)
         GROUP BY fi.uuid_
         ORDER BY fi.uuid_;
     "
@@ -215,6 +230,7 @@ test_forms() {
              AND rpt.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter rpt.modifiedDate)
         ORDER BY fi.uuid_;
     "
 
@@ -229,6 +245,7 @@ test_forms() {
              AND rpt.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter rpt.modifiedDate)
         ORDER BY fi.uuid_;
     "
 
@@ -252,6 +269,7 @@ test_forms() {
              )
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter fiv.modifiedDate)
         ORDER BY fi.uuid_;
     "
 
@@ -272,6 +290,7 @@ test_forms() {
              )
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
+          $(date_filter fiv.modifiedDate)
         ORDER BY fi.uuid_;
     "
 
@@ -290,6 +309,7 @@ test_forms() {
               WHERE  value = 'com.liferay.dynamic.data.mapping.model.DDMFormInstance'
           )
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -305,6 +325,7 @@ test_forms() {
               WHERE  value = 'com.liferay.dynamic.data.mapping.model.DDMFormInstance'
           )
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -319,6 +340,7 @@ test_forms() {
               WHERE  value = 'com.liferay.dynamic.data.mapping.model.DDMFormInstance'
           )
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -333,6 +355,7 @@ test_forms() {
               WHERE  value = 'com.liferay.dynamic.data.mapping.model.DDMFormInstance'
           )
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 
@@ -348,6 +371,7 @@ test_forms() {
               WHERE  value = 'com.liferay.dynamic.data.mapping.model.DDMFormInstance'
           )
           AND ctCollectionId = 0
+          $(date_filter modifiedDate)
         ORDER BY structureKey;
     "
 }
