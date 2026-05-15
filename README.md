@@ -62,8 +62,6 @@ lfimex --assets documents_and_media --filter date-range \
 lfimex --assets documents_and_media \
        --ignore-tests 'documents_and_media:DLFileEntryMetadata – Identifiers'
 
-# Push OSGi config files into the running portal before the run.
-lfimex --copy-osgi-configs
 ```
 
 ### Subset selection
@@ -91,13 +89,30 @@ Key variables:
 | Variable | Purpose |
 |---|---|
 | `BASE_URL`, `USERNAME`, `PASSWORD` | Source portal + admin credentials |
-| `SOURCE_COMPANY_WEB_ID`, `SOURCE_GROUP_ID`, `SOURCE_PLID` | Source site identity |
+| `SOURCE_COMPANY_WEB_ID`, `SOURCE_GROUP_ID` | Source site identity |
 | `SRC_DB_*`, `TGT_DB_*` | Source / target MySQL connection |
 | `BUNDLES_DIR` | Local Liferay bundle (used for log capture, OSGi configs) |
 | `ASSETS`, `GLOBAL_ASSETS`, `EXTRA_TESTS`, `IGNORE_TESTS` | Run defaults the CLI flags can override |
 | `INSTANCE_MODE`, `BATCH_MODE`, `CLEANUP_INSTANCE` | Pipeline shape |
+| `COPY_OSGI_CONFIGS` | OSGi config drop (see below) |
+
+`SOURCE_PLID` (any Layout in the source company) is auto-derived from `SOURCE_GROUP_ID` at startup, so you don't need to set it. Override only if the lookup picks a layout you don't want.
 
 The supported asset catalog lives in `config/asset_catalog.sh` (checked into git) — that's the registry of `asset_register` and `global_register` calls. Edit it to add or comment out support for a portlet's data.
+
+### OSGi configs (large LAR uploads, indexer tuning)
+
+Liferay's default upload cap is 100 MB per request, which Web Content and Documents and Media LARs routinely exceed. The import POST then fails with *"Please enter a file with a valid file size no larger than 100.0MB"* and no amount of retrying helps until that limit is raised.
+
+`config/osgi/` ships ready-made config files for the common gotchas:
+
+| File | What it does |
+|---|---|
+| `UploadServletRequestConfiguration.config` | Raises `maxSize` from 100 MB to ~24 GB so big LARs can be uploaded |
+| `ExportImportServiceConfiguration.config` | Per-LAR export/import sizing overrides |
+| `IndexWriterHelperConfiguration.config` | Skip background reindexing during a large import |
+
+Pass `--copy-osgi-configs` (or set `COPY_OSGI_CONFIGS=1` in `config/config.sh`) to have lfimex copy everything in `${OSGI_CONFIGS_DIR}` (default `config/osgi/`) into `${BUNDLES_DIR}/osgi/configs/` as Step 0 of the run. 
 
 ## Results
 
