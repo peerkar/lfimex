@@ -35,10 +35,18 @@
 
 # Company-wide dependencies migrated by step_globals before the site cycle.
 # Only runs in INSTANCE_MODE=create. Uses Liferay's Custom Fields export
-# defaults (PortletDataHandlerBoolean(expando, ...) controls).
+# defaults (PortletDataHandlerBoolean(expando, ...) controls), with one
+# explicit opt-in: PERMISSIONS=on. ExpandoColumn permissions decide who can
+# view/edit each custom field — without this flag the LAR ships the columns
+# but no acl, and on the target every non-admin role loses access to the
+# fields. _global_form_fields auto-adds each extras key to checkboxNames,
+# so PortletRequestImpl._processCheckbox rewrites "on" -> "true" and
+# MapUtil.getBoolean(map, "PERMISSIONS") returns true at export and import.
+# Scoped to this entry on purpose: site-asset PERMISSIONS stays at Liferay's
+# default-off (matching the UI), per the catalog-wide UI-defaults convention.
 global_register custom_fields "Custom Fields" \
   "com_liferay_expando_web_portlet_ExpandoPortlet" \
-  ""
+  "PERMISSIONS=on"
 
 # These need to be migrated before any site assets, otherwise the site assets that reference them will fail to import.
 #
