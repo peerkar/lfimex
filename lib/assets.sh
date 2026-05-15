@@ -91,6 +91,30 @@ assets_resolve() {
 # Emit the form -F arguments for the selected assets and the shared meta fields
 # (PORTLET_DATA=true, checkboxNames=...). Pass the portlet namespace prefix as
 # the first arg, then the asset IDs.
+#
+# Convention: we send only the high-level "include this portlet's data"
+# enablers. Per-data-handler toggles (the long _journal_*, _template_*,
+# _GroupPagesPortlet_* lists you'd see in the JSP) are intentionally absent
+# from BOTH the form params and the checkboxNames list, so Liferay falls back
+# to each PortletDataHandlerBoolean's own defaultValue — i.e. exactly what the
+# UI's Export dialog ships when the user hits Export with the defaults intact.
+# This also handles dynamic per-template-type controls that the Templates and
+# Pages portlets register at runtime: we never have to enumerate them.
+#
+# Overrides go in the asset's `extras` (one "key=value" per line). The only
+# one currently in use is `_depot_site-connections=false` (Liferay's default
+# is true, but the connection doesn't round-trip across companies — see the
+# Asset Libraries note in CLAUDE.md).
+#
+# DELETIONS is listed in checkboxNames without `=on`, which makes
+# _processCheckbox (PortletRequestImpl) force the param to "false". A
+# one-shot site → fresh-target import has nothing to delete in the target,
+# and the source's DeletionSystemEvent table would otherwise be replayed and
+# flood the log with NoSuchLayoutException stacks for legacy rows whose
+# externalReferenceCode is blank.
+#
+# PERMISSIONS / COMMENTS / RATINGS are neither sent nor listed — their
+# data-handler defaults apply (PERMISSIONS off, COMMENTS/RATINGS on).
 asset_form_fields() {
   local ns="$1"; shift
   local id portlet line key
@@ -118,12 +142,7 @@ asset_form_fields() {
     done <<< "${ASSET_EXTRAS[${id}]:-}"
   done
 
-  # Shared toggles
-  printf -- '-F\n%sPERMISSIONS=on\n' "${ns}"
-  printf -- '-F\n%sCOMMENTS=on\n' "${ns}"
-  printf -- '-F\n%sRATINGS=on\n' "${ns}"
-  printf -- '-F\n%sDELETIONS=on\n' "${ns}"
-  checkbox_names+=("PERMISSIONS" "COMMENTS" "RATINGS" "DELETIONS")
+  checkbox_names+=("DELETIONS")
 
   local joined
   joined=$(IFS=','; echo "${checkbox_names[*]}")

@@ -103,11 +103,20 @@ _global_form_fields() {
   printf -- '-F\n%sPORTLET_CONFIGURATION=true\n' "${ns}"
   printf -- '-F\n%sPORTLET_CONFIGURATION_%s=on\n' "${ns}" "${portlet}"
   printf -- '-F\n%sPORTLET_SETUP_%s=on\n' "${ns}" "${portlet}"
-  printf -- '-F\n%sPORTLET_DATA_CONTROL_DEFAULT=false\n' "${ns}"
+  # PORTLET_DATA_CONTROL_DEFAULT controls what an *absent* per-handler toggle
+  # resolves to. PortletDataContextImpl.getBooleanParameter reads
+  # MapUtil.getBoolean(map, "_<ns>_<name>", MapUtil.getBoolean(map,
+  # PORTLET_DATA_CONTROL_DEFAULT, true)). Liferay's portlet-export JSP sets
+  # it to false because the browser then POSTs `_<ns>_<name>=on` for every
+  # pre-checked handler (defaultState=true); the absences correspond to
+  # checkboxes the user unchecked. Our automation doesn't replay those `=on`
+  # values, so we need the *absent* state to mean "include it" — set the
+  # control default to true to match Liferay's MapUtil fallback. Anything we
+  # actually want off (e.g. _depot_site-connections) is still sent as
+  # `=false` and the explicit value wins.
+  printf -- '-F\n%sPORTLET_DATA_CONTROL_DEFAULT=true\n' "${ns}"
   printf -- '-F\n%sPORTLET_DATA=true\n' "${ns}"
   printf -- '-F\n%sPORTLET_DATA_%s=on\n' "${ns}" "${portlet}"
-  printf -- '-F\n%sCOMMENTS=on\n' "${ns}"
-  printf -- '-F\n%sRATINGS=on\n' "${ns}"
 
   if [ "${cmd}" = "export" ]; then
     printf -- '-F\n%srange=all\n' "${ns}"
@@ -117,11 +126,16 @@ _global_form_fields() {
     printf -- '-F\n%sUSER_ID_STRATEGY=CURRENT_USER_ID\n' "${ns}"
   fi
 
+  # Same convention as asset_form_fields: per-handler toggles are omitted from
+  # both the form params and checkboxNames so Liferay's PortletDataHandlerBoolean
+  # defaultValue applies — i.e. the Custom Fields export dialog defaults. Only
+  # DELETIONS is force-disabled (see asset_form_fields comment); PERMISSIONS,
+  # COMMENTS, RATINGS take their own defaults.
   local -a checkbox_names=(
     "PORTLET_CONFIGURATION_${portlet}"
     "PORTLET_SETUP_${portlet}"
     "PORTLET_DATA_${portlet}"
-    "COMMENTS" "RATINGS" "DELETIONS" "PERMISSIONS"
+    "DELETIONS"
   )
   local line key
   while IFS= read -r line; do
