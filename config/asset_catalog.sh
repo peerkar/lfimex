@@ -172,9 +172,14 @@ asset_register style_books "Style Books" \
   "" \
   "style_books"
 
+# AssetTagsAdminPortlet is BatchEnginePortletDataHandler-backed; the only
+# task-item-delegate is KeywordResourceImpl. Even though there's a single
+# registration (so the size>1 gate doesn't fire), empirically the export
+# still drops everything unless we send the explicit per-delegate toggle —
+# same fix as categories / page_templates.
 asset_register tags "Tags" \
   "com_liferay_asset_tags_admin_web_portlet_AssetTagsAdminPortlet" \
-  "" \
+  "_com_liferay_asset_tags_admin_web_portlet_AssetTagsAdminPortlet_com.liferay.headless.admin.taxonomy.internal.resource.v1_0.KeywordResourceImpl=on" \
   "tags"
 
 # Per-template-type toggles (_template_Asset Publisher Template,

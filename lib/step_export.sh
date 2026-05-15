@@ -106,10 +106,16 @@ step_export() {
     fi
   done < <(asset_form_fields "${ns}" "${asset_list[@]}")
 
-  # If site_pages is selected, prime the layout-tree selection. The export
-  # action reads which layouts to ship from PortalPreferences via
-  # SessionTreeJSClicks, not from form params — without this, no Layout rows
-  # land in the LAR.
+  # SessionTreeJSClicks selections live in PortalPreferences and persist
+  # across runs. Always reset the tree before deciding what to do — otherwise
+  # a previous run with site_pages keeps the selection primed and Layout rows
+  # ship even when site_pages isn't in this run's --assets.
+  _clear_layout_tree_selection "${tree_id}" || \
+    log_warn "Failed to clear layout tree selection; stale selection may carry over."
+
+  # If site_pages is selected, re-prime it. The export action reads which
+  # layouts to ship from PortalPreferences via SessionTreeJSClicks, not from
+  # form params — without this, no Layout rows land in the LAR.
   local a
   for a in "${asset_list[@]}"; do
     if [ "${a}" = "site_pages" ]; then
@@ -201,9 +207,6 @@ step_export() {
 # "the synthetic root", and the struts action then recursively records every
 # layoutId under that root in PortalPreferences. The export action looks them
 # up under treeId + "SelectedNode", so that's the suffix we pass here.
-#
-# This is a no-op idempotent operation: calling it twice just re-records the
-# same set, so we don't need to clean up after ourselves.
 _prime_layout_tree_selection() {
   local tree_id="$1"
   local url="${BASE_URL}/c/portal/session_tree_js_click"
@@ -217,6 +220,27 @@ _prime_layout_tree_selection() {
     -d "treeId=${tree_id}SelectedNode" \
     "${url}" 2>&1) || { log_warn "session_tree_js_click failed: ${response}"; return 1; }
   log_info "Primed layout tree selection (treeId=${tree_id}SelectedNode)"
+}
+
+# Reset the layout tree's PortalPreferences entry to blank. cmd=layoutUncheck
+# + plid=0 routes through SessionTreeJSClicks.closeNodes(treeId), which sets
+# the preference to StringPool.BLANK regardless of its previous content.
+# Necessary because the selection persists across runs and a previous run
+# that primed `site_pages` would otherwise carry every layoutId forward into
+# this run's export.
+_clear_layout_tree_selection() {
+  local tree_id="$1"
+  local url="${BASE_URL}/c/portal/session_tree_js_click"
+  local response
+  response=$(curl -sS -b "${COOKIE_JAR}" \
+    -d "p_auth=${P_AUTH}" \
+    -d "cmd=layoutUncheck" \
+    -d "plid=0" \
+    -d "groupId=${SOURCE_GROUP_ID}" \
+    -d "privateLayout=${SOURCE_PRIVATE_LAYOUT}" \
+    -d "treeId=${tree_id}SelectedNode" \
+    "${url}" 2>&1) || { log_warn "session_tree_js_click failed: ${response}"; return 1; }
+  log_info "Cleared layout tree selection (treeId=${tree_id}SelectedNode)"
 }
 
 _step_export_finish() {
