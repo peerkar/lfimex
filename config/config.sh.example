@@ -56,7 +56,7 @@ BATCH_MODE="${BATCH_MODE:-per-asset}"
 POLL_SECONDS="${POLL_SECONDS:-2}"
 
 # Timeout for the background import process to complete before giving up.
-POLL_TIMEOUT="${POLL_TIMEOUT:-1800}"
+POLL_TIMEOUT="${POLL_TIMEOUT:-8000}"
 
 # Delete the test target instance after the run completes so the bundle stays
 # tidy.
@@ -92,7 +92,13 @@ PASSWORD="${PASSWORD:-test}"
 SOURCE_COMPANY_WEB_ID="${SOURCE_COMPANY_WEB_ID:-liferay.com}"
 SOURCE_GROUP_ID="${SOURCE_GROUP_ID:-10182}"
 SOURCE_PRIVATE_LAYOUT="${SOURCE_PRIVATE_LAYOUT:-false}"
-SOURCE_PLID="${SOURCE_PLID:-10176}"
+
+# SOURCE_PLID is auto-derived from SOURCE_GROUP_ID at startup via a simple
+# `SELECT MIN(plid) FROM Layout WHERE companyId=<source company>` lookup.
+# Override here only if the auto-pick happens to land on a layout you don't
+# want used as the ExportImportPortlet form's ThemeDisplay context — any
+# Layout.plid in the same company is functionally equivalent.
+# SOURCE_PLID=""
 
 # -----------------------------------------------------------------------------
 # Source DB (compare.sh)
