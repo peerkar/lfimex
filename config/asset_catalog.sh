@@ -87,12 +87,20 @@ asset_register site_pages "Site Pages" \
 # DepotEntry and the import writes a target-site connection pointing at a
 # source-company group. Opening Documents and Media on the target then trips
 # "Permission queries across multiple portal instances are not supported"
-# because InlineSQLHelper rejects the cross-company groupId. Setting the
-# toggle to false (rather than dropping the extras line) keeps the field
-# explicitly off — the handler's defaultValue is true.
+# because InlineSQLHelper rejects the cross-company groupId.
+#
+# We deliberately leave the portlet ID empty here. asset_form_fields only
+# emits PORTLET_DATA_<portlet>=on when a portlet ID is present, so leaving
+# it blank means DepotAdminPortletDataHandler is never invoked — neither on
+# export nor on import. The `_depot_site-connections=false` toggle is not
+# enough: inspecting DepotAdminPortletDataHandler.doExportData shows it
+# ignores that toggle entirely and unconditionally exports every site→depot
+# rel as long as the handler is invoked at all. The entry stays registered
+# so the validation test still runs in INSTANCE_MODE=reuse where depots
+# legitimately exist on the same company.
 asset_register asset_libraries "Asset Libraries" \
-  "com_liferay_depot_web_portlet_DepotAdminPortlet" \
-  "_depot_site-connections=false" \
+  "" \
+  "" \
   "asset_libraries"
 
 asset_register blogs "Blogs" \
