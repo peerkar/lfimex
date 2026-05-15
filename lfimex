@@ -191,6 +191,17 @@ log_info "Results directory: ${RUN_DIR}"
 session_init
 session_login
 
+# Auto-derive SOURCE_PLID from SOURCE_GROUP_ID's company unless the user has
+# explicitly set one. The globals export POST needs a real plid in the source
+# company's Layout table; any layout will do.
+if [ -z "${SOURCE_PLID:-}" ] || [ "${SOURCE_PLID}" = "0" ]; then
+  SOURCE_PLID="$(_group_company_any_plid "${SOURCE_GROUP_ID}")"
+  if [ -z "${SOURCE_PLID}" ] || [ "${SOURCE_PLID}" = "NULL" ]; then
+    die "Could not auto-derive SOURCE_PLID from SOURCE_GROUP_ID=${SOURCE_GROUP_ID}. Set SOURCE_PLID explicitly in config.sh."
+  fi
+  log_info "Auto-derived SOURCE_PLID=${SOURCE_PLID}"
+fi
+
 TOTAL_TIMER=$(timer_start)
 
 # --export-only short-circuits the pipeline: produce LARs from the source

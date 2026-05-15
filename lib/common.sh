@@ -102,6 +102,22 @@ group_site_key() {
   mysql_q "SELECT groupKey FROM Group_ WHERE groupId=$1;"
 }
 
+# Any existing Layout plid for the given companyId. ExportImportPortlet's
+# action handlers require a real plid in their form posts to construct a
+# ThemeDisplay for the request context; the specific layout doesn't matter,
+# only that it belongs to the right company.
+_company_any_plid() {
+  mysql_q "SELECT MIN(plid) FROM Layout WHERE companyId=$1;"
+}
+
+# Any existing Layout plid for the company that owns the given groupId.
+# Convenience wrapper used to derive SOURCE_PLID from SOURCE_GROUP_ID.
+_group_company_any_plid() {
+  mysql_q "SELECT MIN(l.plid) FROM Layout l
+           JOIN Group_ g ON g.companyId = l.companyId
+           WHERE g.groupId = $1;"
+}
+
 # Normalize a date arg to YYYY-MM-DD. Accepts YYYY-MM-DD or YYYYMMDD.
 normalize_date() {
   local d="$1"

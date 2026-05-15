@@ -59,12 +59,7 @@ _global_site_id() {
   mysql_q "SELECT g.groupId FROM Group_ g JOIN Company c ON c.companyId=g.companyId WHERE c.webId='$1' AND g.friendlyURL='/global' AND g.site=1 LIMIT 1;"
 }
 
-# Any existing Layout plid for the given companyId. ExportImportPortlet
-# requires a real plid in its form; SOURCE_PLID lives in the source company
-# and isn't valid for target POSTs.
-_company_any_plid() {
-  mysql_q "SELECT MIN(plid) FROM Layout WHERE companyId=$1;"
-}
+# _company_any_plid is defined in lib/common.sh.
 
 # Drive one global through export → upload → import, recording one result
 # row per phase. Phases are isolated so a failed export doesn't try to

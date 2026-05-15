@@ -68,9 +68,19 @@ step_site() {
     return 1
   fi
 
-  # step_import needs a plid for context; reusing the control panel plid
-  # works because all imports run through the Control Panel.
-  NEW_SITE_PLID="${SOURCE_PLID}"
+  # step_import sends `plid=` in its POST so the target portal can build a
+  # ThemeDisplay for the request context. Any layout in the target company
+  # works; importantly we do NOT reuse SOURCE_PLID here — in INSTANCE_MODE=
+  # create that's a layout from a different company entirely. Mirror what
+  # step_globals_import does and look one up in the target's Layout table.
+  NEW_SITE_PLID="$(_company_any_plid "${NEW_INSTANCE_COMPANY_ID}")"
+  if [ -z "${NEW_SITE_PLID}" ] || [ "${NEW_SITE_PLID}" = "NULL" ]; then
+    bundle_log_collect "${log_offset}" "${log_file}"
+    result_add "create_site" "fail" "$(timer_elapsed "${timer}")" \
+      "$(bundle_log_summary "${log_file}")" \
+      "no plid in target company ${NEW_INSTANCE_COMPANY_ID}"
+    return 1
+  fi
 
   bundle_log_collect "${log_offset}" "${log_file}"
   result_add "create_site" "ok" "$(timer_elapsed "${timer}")" \
