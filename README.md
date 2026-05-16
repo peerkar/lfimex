@@ -59,8 +59,9 @@ lfimex --assets documents_and_media --filter date-range \
        --from-date 2023-12-01 --to-date 2026-05-13
 
 # Drop one specific check known to be a false positive on this corpus.
+# Pattern: '<test>:<check label substring>' or '*:<check label substring>'.
 lfimex --assets documents_and_media \
-       --ignore-tests 'documents_and_media:DLFileEntryMetadata – Identifiers'
+       --ignore-tests 'documents_and_media:DLFileEntryType – Identifiers'
 
 ```
 

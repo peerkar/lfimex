@@ -51,18 +51,42 @@ bundle_log_collect() {
       ' > "${out}"
 }
 
-# Print a one-line summary: "ERR=n WARN=n" plus the first error if any.
+# One-line LOG-column summary for a captured bundle log.
+#
+# Output rules (signal-first):
+#   - Empty string when the captured log has no ERROR/WARN blocks. That
+#     covers both an empty file (nothing landed in the window) AND a
+#     non-empty file where every ERROR/WARN matched LIFERAY_LOG_IGNORE_REGEX
+#     and got filtered out. The TSV and on-screen table both render as a
+#     blank cell.
+#   - "ERR=n" / "WARN=n" / "ERR=n WARN=n" otherwise. The zero half is
+#     omitted so "WARN=3" reads cleanly instead of "ERR=0 WARN=3".
+#   - When at least one ERROR is present, append " | <first error message>"
+#     with the Liferay header prefix stripped, so the table can show the
+#     class/message directly. Trimmed to ~120 chars; result_print further
+#     clips to the column width.
 bundle_log_summary() {
   local file="$1"
-  if [ ! -s "${file}" ]; then echo "no errors"; return; fi
+  [ ! -s "${file}" ] && { echo ""; return; }
   local err warn
   err=$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]+ ERROR +\[' "${file}" || true)
   warn=$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]+ WARN +\[' "${file}" || true)
+  [ "${err}" -eq 0 ] && [ "${warn}" -eq 0 ] && { echo ""; return; }
+
+  local parts=""
+  [ "${err}" -gt 0 ] && parts="ERR=${err}"
+  if [ "${warn}" -gt 0 ]; then
+    [ -n "${parts}" ] && parts="${parts} WARN=${warn}" || parts="WARN=${warn}"
+  fi
+
   local first
-  first=$(grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]+ ERROR +\[' "${file}" | head -n1 | cut -c1-120)
+  first=$(grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]+ ERROR +\[' "${file}" \
+          | head -n1 \
+          | sed -E 's/^[0-9-]+ [0-9:.]+ +(ERROR|WARN) +\[[^]]*\]\[[^]]*\] +//' \
+          | cut -c1-120)
   if [ -n "${first}" ]; then
-    echo "ERR=${err} WARN=${warn} | ${first}"
+    echo "${parts} | ${first}"
   else
-    echo "ERR=${err} WARN=${warn}"
+    echo "${parts}"
   fi
 }

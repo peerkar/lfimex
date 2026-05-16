@@ -15,6 +15,8 @@ declare -A ASSET_LABEL
 declare -A ASSET_PORTLET
 declare -A ASSET_EXTRAS
 declare -A ASSET_TEST
+declare -A ASSET_COUNT_QUERY
+declare -A ASSET_COUNT_DATE_COLUMN
 ASSET_ORDER=()
 
 asset_register() {
@@ -24,6 +26,28 @@ asset_register() {
   ASSET_EXTRAS[${id}]="${extras}"
   ASSET_TEST[${id}]="${test}"
   ASSET_ORDER+=("${id}")
+}
+
+# Register a "headline row count" SQL for an asset. The placeholder __GID__
+# is substituted with a groupId before the query runs; __DATE_FILTER__, if
+# present in the SQL, is substituted with an "AND <column> BETWEEN <from>
+# AND <to>" clause when --filter date-range is active (and with an empty
+# string otherwise). See lib/result.sh's _result_print_asset_counts.
+#
+# Use this for assets that have a primary row-count concept at the site
+# level — skip company-scoped ones (asset_libraries) and anything where a
+# single number doesn't tell a useful story.
+#
+# Usage:
+#   asset_count_register <id> <sql> [date_column]
+#
+# date_column is the column (optionally with a table alias, e.g. "ja.modifiedDate")
+# the date range applies to. When omitted, the count never narrows for date-range
+# runs even if --from-date/--to-date are set.
+asset_count_register() {
+  local id="$1" sql="$2" date_column="${3:-}"
+  ASSET_COUNT_QUERY[${id}]="${sql}"
+  ASSET_COUNT_DATE_COLUMN[${id}]="${date_column}"
 }
 
 asset_ids() { printf '%s\n' "${ASSET_ORDER[@]}"; }

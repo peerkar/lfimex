@@ -125,28 +125,29 @@ step_import() {
   # Poll the import task. BackgroundTaskConstants:
   #   0=NEW, 1=IN_PROGRESS, 2=FAILED, 3=SUCCESSFUL,
   #   4=QUEUED, 5=CANCELLED, 6=COMPLETED_WITH_ERRORS.
+  # The integer is appended to `status` as "<ok|warn|fail>(<int>)".
   local elapsed_poll=0 task_status status="ok" details=""
   while :; do
     task_status="$(mysql_q "SELECT status FROM BackgroundTask WHERE backgroundTaskId=${task_id};")"
     case "${task_status}" in
       0|1|4)
         if [ "${elapsed_poll}" -ge "${POLL_TIMEOUT}" ]; then
-          status="fail"; details="timeout after ${POLL_TIMEOUT}s, status=${task_status}"
+          status="fail(${task_status})"; details="timeout after ${POLL_TIMEOUT}s, status=${task_status}"
           break
         fi
         sleep "${POLL_SECONDS}"
         elapsed_poll=$((elapsed_poll + POLL_SECONDS))
         ;;
-      3) details="task ${task_id} succeeded"; break ;;
-      6) status="warn"; details="task ${task_id} completed with errors"; break ;;
+      3) status="ok(${task_status})"; details="task ${task_id} succeeded"; break ;;
+      6) status="warn(${task_status})"; details="task ${task_id} completed with errors"; break ;;
       2|5)
-        status="fail"
+        status="fail(${task_status})"
         local msg
         msg=$(mysql_q "SELECT statusMessage FROM BackgroundTask WHERE backgroundTaskId=${task_id};" | head -c 80)
         details="task ${task_id} status=${task_status} ${msg}"
         break
         ;;
-      *) status="fail"; details="task ${task_id} unexpected status=${task_status}"; break ;;
+      *) status="fail(${task_status})"; details="task ${task_id} unexpected status=${task_status}"; break ;;
     esac
   done
 
@@ -166,5 +167,5 @@ step_import() {
 
   result_add "${label}" "${status}" "$(timer_elapsed "${timer}")" \
     "$(bundle_log_summary "${log_file}")" "${details}"
-  [ "${status}" = "ok" ] || [ "${status}" = "warn" ]
+  [[ "${status}" == ok* || "${status}" == warn* ]]
 }

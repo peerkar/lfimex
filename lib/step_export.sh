@@ -149,26 +149,28 @@ step_export() {
   # Poll until terminal status. BackgroundTaskConstants:
   #   0=NEW, 1=IN_PROGRESS, 2=FAILED, 3=SUCCESSFUL,
   #   4=QUEUED, 5=CANCELLED, 6=COMPLETED_WITH_ERRORS.
+  # The integer is appended to `status` as "<ok|warn|fail>(<int>)" so the
+  # results table and grand summary can surface the terminal task code.
   local elapsed_poll=0 task_status
   while :; do
     task_status="$(mysql_q "SELECT status FROM BackgroundTask WHERE backgroundTaskId=${task_id};")"
     case "${task_status}" in
       0|1|4)
         if [ "${elapsed_poll}" -ge "${POLL_TIMEOUT}" ]; then
-          status="fail"; details="timeout after ${POLL_TIMEOUT}s, status=${task_status}"
+          status="fail(${task_status})"; details="timeout after ${POLL_TIMEOUT}s, status=${task_status}"
           break
         fi
         sleep "${POLL_SECONDS}"
         elapsed_poll=$((elapsed_poll + POLL_SECONDS))
         ;;
-      3) details="task ${task_id} succeeded"; break ;;
-      6) status="warn"; details="task ${task_id} completed with errors"; break ;;
-      2|5) status="fail"; details="task ${task_id} status=${task_status} (failed/cancelled)"; break ;;
-      *) status="fail"; details="task ${task_id} unexpected status=${task_status}"; break ;;
+      3) status="ok(${task_status})"; details="task ${task_id} succeeded"; break ;;
+      6) status="warn(${task_status})"; details="task ${task_id} completed with errors"; break ;;
+      2|5) status="fail(${task_status})"; details="task ${task_id} status=${task_status} (failed/cancelled)"; break ;;
+      *) status="fail(${task_status})"; details="task ${task_id} unexpected status=${task_status}"; break ;;
     esac
   done
 
-  if [ "${status}" = "ok" ]; then
+  if [[ "${status}" == ok* ]]; then
     # The DB poll above can run for hours; refresh the session so the LAR
     # download doesn't silently get a login-redirect HTML page saved as .lar.
     session_refresh
@@ -197,7 +199,7 @@ step_export() {
   fi
 
   _step_export_finish "${timer}" "${log_offset}" "${log_file}" "${status}" "${details}" "${task_id}" "${tag_file}"
-  [ "${status}" = "ok" ]
+  [[ "${status}" == ok* ]]
 }
 
 # Tell Liferay the layout tree is fully checked. The export action reads

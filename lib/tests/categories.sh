@@ -128,17 +128,48 @@ test_categories() {
         ORDER BY externalReferenceCode;
     "
 
+    # AssetCategory.title/.description are Liferay LocalizedString blobs:
+    #   <root … ><Title language-id=\"de_DE\">Deutschland</Title>
+    #            <Title language-id=\"en_US\">Germany</Title></root>
+    # Per-locale element order is whatever Liferay wrote to disk and isn't
+    # preserved across export/import, so REGEXP_REPLACE-then-compare or
+    # MD5-on-the-raw-blob produce false positives like
+    #   < DeutschlandGermany  vs  > GermanyDeutschland.
+    # Fix: enumerate language-id=value pairs with a sequence-table join, then
+    # GROUP_CONCAT them in sorted order so the comparison is locale-set-based.
     check "AssetCategory – Title and description" "
         SELECT
-            externalReferenceCode,
-            REGEXP_REPLACE(title, '<[^>]+>', '')    AS title_plain,
-            MD5(description)                        AS description_md5,
-            LENGTH(description)                     AS description_len
-        FROM AssetCategory
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-          $(date_filter modifiedDate)
-        ORDER BY externalReferenceCode;
+            ac.externalReferenceCode,
+            GROUP_CONCAT(
+                REPLACE(REPLACE(
+                    REGEXP_SUBSTR(ac.title, 'language-id=\"[^\"]*\">[^<]*', 1, seq.n),
+                    'language-id=\"', ''),
+                    '\">', '=')
+                ORDER BY REGEXP_SUBSTR(ac.title, 'language-id=\"[^\"]*\">[^<]*', 1, seq.n)
+                SEPARATOR ', '
+            ) AS title_translations,
+            MD5(IFNULL(GROUP_CONCAT(
+                REPLACE(REPLACE(
+                    REGEXP_SUBSTR(ac.description, 'language-id=\"[^\"]*\">[^<]*', 1, seq.n),
+                    'language-id=\"', ''),
+                    '\">', '=')
+                ORDER BY REGEXP_SUBSTR(ac.description, 'language-id=\"[^\"]*\">[^<]*', 1, seq.n)
+                SEPARATOR ', '
+            ), ''))                                 AS description_md5,
+            -- description is per-row but we're aggregating by ERC; MAX picks
+            -- the single value per group (each ERC has exactly one row) and
+            -- keeps ONLY_FULL_GROUP_BY satisfied.
+            MAX(LENGTH(ac.description))             AS description_len
+        FROM AssetCategory ac
+        JOIN (
+            SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+            UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+        ) seq ON REGEXP_SUBSTR(ac.title, 'language-id=\"[^\"]*\">[^<]*', 1, seq.n) IS NOT NULL
+        WHERE ac.groupId        = __GROUPID__
+          AND ac.ctCollectionId = 0
+          $(date_filter ac.modifiedDate)
+        GROUP BY ac.externalReferenceCode
+        ORDER BY ac.externalReferenceCode;
     "
 
     check "AssetCategory – Core fields" "

@@ -136,6 +136,11 @@ asset_register categories "Categories and Vocabularies" \
 _com_liferay_asset_categories_admin_web_portlet_AssetCategoriesAdminPortlet_com.liferay.headless.admin.taxonomy.internal.resource.v1_0.TaxonomyVocabularyResourceImpl=on" \
   "categories"
 
+asset_register collections "Collections (Asset Lists)" \
+  "com_liferay_asset_list_web_portlet_AssetListPortlet" \
+  "" \
+  "collections"
+
 asset_register documents_and_media "Documents and Media" \
   "com_liferay_document_library_web_portlet_DLAdminPortlet" \
   "" \
@@ -216,3 +221,36 @@ asset_register wiki "Wiki" \
   "com_liferay_wiki_web_portlet_WikiAdminPortlet" \
   "" \
   "wiki"
+
+# =============================================================================
+# Per-asset row-count queries surfaced in the grand summary's source-vs-target
+# comparison panel. __GID__ is substituted with the groupId being queried;
+# __DATE_FILTER__, when present, becomes "AND <col> BETWEEN <from> AND <to>"
+# during --filter date-range runs (and an empty string otherwise). The 3rd
+# argument names the column the date filter should constrain — same column
+# the per-asset test's `$(date_filter <col>)` calls already use.
+#
+# Every WHERE includes `ctCollectionId = 0` to skip Publications drafts so the
+# count matches what the user actually sees in admin. A few entries add an
+# extra filter (e.g. head=1, system_=0, version=MAX) to count head/visible
+# rows only — same convention the per-asset tests use for their first check.
+# Assets without a meaningful per-site count are omitted (asset_libraries is
+# company-scoped, site_settings has no row concept).
+# =============================================================================
+
+asset_count_register blogs              "SELECT COUNT(*) FROM BlogsEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register calendar           "SELECT COUNT(*) FROM CalendarBooking WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register categories         "SELECT COUNT(*) FROM AssetCategory WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register collections        "SELECT COUNT(*) FROM AssetListEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register documents_and_media "SELECT COUNT(*) FROM DLFileEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register forms              "SELECT COUNT(*) FROM DDMFormInstance WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register fragments          "SELECT COUNT(*) FROM FragmentEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 AND fragmentCollectionId!=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register navigation_menus   "SELECT COUNT(*) FROM SiteNavigationMenu WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register page_templates     "SELECT COUNT(*) FROM LayoutPageTemplateEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register segments           "SELECT COUNT(*) FROM SegmentsEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register site_pages         "SELECT COUNT(*) FROM Layout WHERE groupId=__GID__ AND ctCollectionId=0 AND system_=0 AND status=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register style_books        "SELECT COUNT(*) FROM StyleBookEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 __DATE_FILTER__" "modifiedDate"
+asset_count_register tags               "SELECT COUNT(*) FROM AssetTag WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register templates          "SELECT COUNT(*) FROM DDMTemplate WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
+asset_count_register web_content        "SELECT COUNT(*) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.version=(SELECT MAX(ja2.version) FROM JournalArticle ja2 WHERE ja2.articleId=ja.articleId AND ja2.groupId=ja.groupId AND ja2.ctCollectionId=0) __DATE_FILTER__" "ja.modifiedDate"
+asset_count_register wiki               "SELECT COUNT(*) FROM WikiPage WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 __DATE_FILTER__" "modifiedDate"

@@ -72,10 +72,17 @@ CLEANUP_INSTANCE="${CLEANUP_INSTANCE:-0}"
 COPY_OSGI_CONFIGS="${COPY_OSGI_CONFIGS:-0}"
 OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 
-# Extended regex matched against ERROR/WARN header lines in the Liferay log
-# during bundle-log capture. Matching blocks are dropped before counting and
-# summarizing. Set to a pattern to suppress known false positives.
-LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-}"
+# Extended regex (POSIX ERE) matched against ERROR/WARN header lines in the
+# Liferay log during bundle-log capture. Matching blocks are dropped before
+# counting and summarizing. Combine patterns with `|`.
+#
+# Default suppressions cover known false positives the pipeline triggers:
+#   - "Redirect URL ... is not allowed"
+#       Every ExportImportPortlet action sends a redirect= form param so the
+#       render-after-action lands on a benign URL; Liferay's portal.url.* allow
+#       list often doesn't include it, so RedirectUtil logs a WARN for each
+#       POST. Cosmetic.
+LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-Redirect URL .* is not allowed}"
 
 # -----------------------------------------------------------------------------
 # Portal
@@ -171,14 +178,47 @@ GLOBAL_ASSETS="${GLOBAL_ASSETS:-all}"
 # example, since friendly URLs exist for many entity types at once.
 EXTRA_TESTS="${EXTRA_TESTS:-friendly_url}"
 
+
 # Comma-separated "<test>:<label>" patterns whose checks compare.sh should
 # skip. Use "*:<label>" to match the label in any test. Substring match on
 # the label. The --ignore-tests CLI flag appends to this list (doesn't
 # replace it), so a baseline of well-known false positives lives here and
-# one-off run-specific patterns can be added on the command line. Example:
+# one-off run-specific patterns can be added on the command line.
 #
-#   IGNORE_TESTS="documents_and_media:DLFileEntryMetadata – Identifiers,documents_and_media:DLFileEntryType"
-IGNORE_TESTS="${IGNORE_TESTS:-}"
+# Known false positives to ignore (as of 2024-06):
+# ------------------------------------------------
+#   blogs:BlogsEntry – Small image and cover image caption (https://liferay.atlassian.net/browse/LPD-85295)
+#   blogs:BlogsEntry – Content checksums (https://liferay.atlassian.net/browse/LPD-85295)
+#   categories:AssetCategory - Dates (https://liferay.atlassian.net/browse/LPD-86888)
+#   documents_and_media:DLFileEntryType – Dates (https://liferay.atlassian.net/browse/LPD-86888)
+#   documents_and_media:DLFileEntryMetadata – Identifiers: Liferay regenerates the metadata ERC during import — value differs between
+#   forms:DDMFormInstanceReport – Dates (https://liferay.atlassian.net/browse/LPD-86888)
+#   fragments:FragmentComposition – Total count (https://liferay.atlassian.net/browse/LPD-86823)
+#   fragments:FragmentComposition – Identifiers (https://liferay.atlassian.net/browse/LPD-86823)
+#   fragments:FragmentComposition – Names and descriptions (https://liferay.atlassian.net/browse/LPD-86823)
+#   fragments:FragmentComposition – Core fields (https://liferay.atlassian.net/browse/LPD-86823)
+#   fragments:FragmentComposition – Data checksum (https://liferay.atlassian.net/browse/LPD-86823)
+#   fragments:FragmentComposition – Dates (https://liferay.atlassian.net/browse/LPD-86823)
+#   fragments:FragmentEntryLink – Dates (https://liferay.atlassian.net/browse/LPD-85261) 
+#   navigation_menus:SiteNavigationMenu – Dates (https://liferay.atlassian.net/browse/LPD-86546)
+#   navigation_menus:SiteNavigationMenu – Identifiers https://liferay.atlassian.net/browse/LPD-86546
+#   navigation_menus:SiteNavigationMenuItem – Identifiers https://liferay.atlassian.net/browse/LPD-86546
+#   navigation_menus:SiteNavigationMenuItem – Dates (https://liferay.atlassian.net/browse/LPD-86546)
+#   page_templates:Master Pages – Identifiers (https://liferay.atlassian.net/browse/LPD-86553)
+#   page_templates:Master Pages – Dates (https://liferay.atlassian.net/browse/LPD-85261)
+#   page_templates:Page Template Collections – Identifiers (https://liferay.atlassian.net/browse/LPD-86553)
+#   page_templates:Page Template Collections – Dates (https://liferay.atlassian.net/browse/LPD-85261)
+#   page_templates:Page Templates – Identifiers (https://liferay.atlassian.net/browse/LPD-86553)
+#   page_templates:Page Templates – Dates (https://liferay.atlassian.net/browse/LPD-85261)
+#   page_templates:Display Page Templates – Identifiers (https://liferay.atlassian.net/browse/LPD-86553)
+#   page_templates:Display Page Templates – Dates (https://liferay.atlassian.net/browse/LPD-85261)
+#   site_pages:Layout – Dates (https://liferay.atlassian.net/browse/LPD-85261)
+#   site_pages:LayoutSet – Dates (https://liferay.atlassian.net/browse/LPD-85261)
+#   tags:AssetTag – Dates (https://liferay.atlassian.net/browse/LPD-86888)
+#   tags:AssetTag – Identifiers https://liferay.atlassian.net/browse/LPD-85252
+#   web_content:JournalFolder – Dates (https://liferay.atlassian.net/browse/LPD-86888)
+IGNORE_TESTS="${IGNORE_TESTS:-blogs:BlogsEntry – Small image and cover image caption,blogs:BlogsEntry – Content checksums,categories:AssetCategory - Dates,documents_and_media:DLFileEntryType – Dates,documents_and_media:DLFileEntryMetadata – Identifiers,forms:DDMFormInstanceReport – Dates,fragments:FragmentComposition – Total count,fragments:FragmentComposition – Identifiers,fragments:FragmentComposition – Names and descriptions,fragments:FragmentComposition – Core fields,fragments:FragmentComposition – Data checksum,fragments:FragmentComposition – Dates,fragments:FragmentEntryLink – Dates,navigation_menus:SiteNavigationMenu – Dates,navigation_menus:SiteNavigationMenu – Identifiers,navigation_menus:SiteNavigationMenuItem – Identifiers,navigation_menus:SiteNavigationMenuItem – Dates,page_templates:Master Pages – Identifiers,page_templates:Master Pages – Dates,page_templates:Page Template Collections – Identifiers,page_templates:Page Template Collections – Dates,page_templates:Page Templates – Identifiers,page_templates:Page Templates – Dates,page_templates:Display Page Templates – Identifiers,page_templates:Display Page Templates – Dates,site_pages:Layout – Dates,site_pages:LayoutSet – Dates,tags:AssetTag – Dates,web_content:JournalFolder – Dates}"
+
 
 # =============================================================================
 # Catalog wiring

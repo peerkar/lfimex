@@ -70,6 +70,8 @@ require_portal_ext_property() {
 # markers; its exit code is preserved.
 run_step() {
   local name="$1"; shift
+  # Blank line before each step's "starting" so the log shows step boundaries
+  # as visual breaks. Goes to stderr to stay grouped with the log_info stream.
   log_info "Step ${name} starting"
   "$@"
   local rc=$?

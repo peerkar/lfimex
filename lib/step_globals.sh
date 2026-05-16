@@ -231,7 +231,7 @@ _step_globals_export() {
   _poll_task "${task_id}" status details
 
   local lar_path=""
-  if [ "${status}" = "ok" ]; then
+  if [[ "${status}" == ok* ]]; then
     # Poll above can outlast the session; refresh before downloading the LAR.
     session_refresh
     local row uuid name group
@@ -258,7 +258,7 @@ _step_globals_export() {
   bundle_log_collect "${log_offset}" "${log_file}"
   result_add "${label}" "${status}" "$(timer_elapsed "${timer}")" \
     "$(bundle_log_summary "${log_file}")" "${details}"
-  [ "${status}" = "ok" ]
+  [[ "${status}" == ok* ]]
 }
 
 _step_globals_import() {
@@ -333,7 +333,7 @@ _step_globals_import() {
   bundle_log_collect "${log_offset}" "${log_file}"
   result_add "${label}" "${status}" "$(timer_elapsed "${timer}")" \
     "$(bundle_log_summary "${log_file}")" "task=${task_id} ${details}"
-  [ "${status}" = "ok" ] || [ "${status}" = "warn" ]
+  [[ "${status}" == ok* || "${status}" == warn* ]]
 }
 
 # Spin for up to 30s waiting for a new BackgroundTask row to appear with the
@@ -353,7 +353,9 @@ _wait_for_task() {
 }
 
 # Poll a BackgroundTask until it reaches a terminal status. Sets the named
-# status and details variables in the caller's scope (nameref).
+# status and details variables in the caller's scope (nameref). The status
+# value is encoded as "<ok|warn|fail>(<task_status>)" so the BG-task terminal
+# code propagates into the results table.
 _poll_task() {
   local task_id="$1"
   local -n _st="$2" _det="$3"
@@ -363,22 +365,22 @@ _poll_task() {
     case "${task_status}" in
       0|1|4)
         if [ "${elapsed_poll}" -ge "${POLL_TIMEOUT}" ]; then
-          _st="fail"; _det="timeout after ${POLL_TIMEOUT}s, status=${task_status}"
+          _st="fail(${task_status})"; _det="timeout after ${POLL_TIMEOUT}s, status=${task_status}"
           return
         fi
         sleep "${POLL_SECONDS}"
         elapsed_poll=$((elapsed_poll + POLL_SECONDS))
         ;;
-      3) _det="succeeded"; return ;;
-      6) _st="warn"; _det="completed with errors"; return ;;
+      3) _st="ok(${task_status})"; _det="succeeded"; return ;;
+      6) _st="warn(${task_status})"; _det="completed with errors"; return ;;
       2|5)
-        _st="fail"
+        _st="fail(${task_status})"
         local msg
         msg=$(mysql_q "SELECT statusMessage FROM BackgroundTask WHERE backgroundTaskId=${task_id};" | head -c 80)
         _det="status=${task_status} ${msg}"
         return
         ;;
-      *) _st="fail"; _det="unexpected status=${task_status}"; return ;;
+      *) _st="fail(${task_status})"; _det="unexpected status=${task_status}"; return ;;
     esac
   done
 }

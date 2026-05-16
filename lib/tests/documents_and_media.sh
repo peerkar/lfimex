@@ -150,20 +150,16 @@ test_documents_and_media() {
         ORDER BY file_entry_type;
     "
 
-    check "DLFileEntryMetadata – Identifiers" "
-        SELECT
-            fem.externalReferenceCode,
-            fem.uuid_,
-            fe.externalReferenceCode AS file_erc
-        FROM DLFileEntryMetadata fem
-        JOIN DLFileEntry fe
-          ON fe.fileEntryId      = fem.fileEntryId
-         AND fe.ctCollectionId   = 0
-        WHERE fe.groupId         = __GROUPID__
-          AND fem.ctCollectionId = 0
-          $(date_filter fe.modifiedDate)
-        ORDER BY fem.externalReferenceCode;
-    "
+    # NOTE: a "DLFileEntryMetadata – Identifiers" check used to live here
+    # comparing fem.externalReferenceCode + fem.uuid_ + file_erc per row, but
+    # the first two columns are server-regenerated on import (the LAR's
+    # FileEntryStagedModelDataHandler ships only structureKey/structureUuid
+    # + the DDMFormValues blob, not the metadata-row's own ERC/uuid). The
+    # `Content checksum per file` check below already groups by
+    # (file_erc, structureKey) and asserts byte-equal content, which is
+    # strictly stronger than presence-by-natural-key — if a metadata row is
+    # missing on target, its MD5 is absent and the diff catches it. Drop
+    # rather than ignore.
 
     check "DLFileEntryMetadata – Content checksum per file" "
         SELECT
