@@ -16,6 +16,43 @@
 #     SOURCE_GROUP_ID=10182 lfimex --assets blogs
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Portal connection
+# -----------------------------------------------------------------------------
+
+BUNDLES_DIR="${BUNDLES_DIR:-/path/to/your/liferay/bundles}"
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+USERNAME="${USERNAME:-test@liferay.com}"
+PASSWORD="${PASSWORD:-test}"
+
+# -----------------------------------------------------------------------------
+# Source company & site
+# -----------------------------------------------------------------------------
+
+SOURCE_COMPANY_WEB_ID="${SOURCE_COMPANY_WEB_ID:-liferay.com}"
+SOURCE_GROUP_ID="${SOURCE_GROUP_ID:-10182}"
+SOURCE_PRIVATE_LAYOUT="${SOURCE_PRIVATE_LAYOUT:-false}"
+
+# -----------------------------------------------------------------------------
+# Source DB (compare.sh)
+# -----------------------------------------------------------------------------
+
+SRC_DB_HOST="${SRC_DB_HOST:-localhost}"
+SRC_DB_PORT="${SRC_DB_PORT:-3306}"
+SRC_DB_NAME="${SRC_DB_NAME:-lportal}"
+SRC_DB_USER="${SRC_DB_USER:-liferay}"
+SRC_DB_PASS="${SRC_DB_PASS:-liferay}"
+
+# -----------------------------------------------------------------------------
+# Target DB (compare.sh)
+# -----------------------------------------------------------------------------
+
+TGT_DB_HOST="${TGT_DB_HOST:-localhost}"
+TGT_DB_PORT="${TGT_DB_PORT:-3306}"
+TGT_DB_NAME="${TGT_DB_NAME:-lportal}"
+TGT_DB_USER="${TGT_DB_USER:-liferay}"
+TGT_DB_PASS="${TGT_DB_PASS:-liferay}"
+
 # Unique ID for this run, used in log and result paths. Defaults to a timestamp.
 RUN_ID="${RUN_ID:-$(date +%Y%m%d-%H%M%S)}"
 
@@ -27,7 +64,6 @@ RUN_ID="${RUN_ID:-$(date +%Y%m%d-%H%M%S)}"
 # point so they don't all recompute it. The conditional lets a caller supply
 # its own value if it's already resolved one.
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-BUNDLES_DIR="${BUNDLES_DIR:-/path/to/your/liferay/bundles}"
 LIFERAY_LOG_DIR="${LIFERAY_LOG_DIR:-${BUNDLES_DIR}/logs}"
 RESULTS_DIR="${RESULTS_DIR:-${PROJECT_DIR}/results}"
 RUN_DIR="${RESULTS_DIR}/${RUN_ID}"
@@ -85,39 +121,6 @@ OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-Redirect URL .* is not allowed}"
 
 # -----------------------------------------------------------------------------
-# Portal
-# -----------------------------------------------------------------------------
-
-BASE_URL="${BASE_URL:-http://localhost:8080}"
-USERNAME="${USERNAME:-test@liferay.com}"
-PASSWORD="${PASSWORD:-test}"
-
-# -----------------------------------------------------------------------------
-# Source company & site (compare.sh)
-# -----------------------------------------------------------------------------
-
-SOURCE_COMPANY_WEB_ID="${SOURCE_COMPANY_WEB_ID:-liferay.com}"
-SOURCE_GROUP_ID="${SOURCE_GROUP_ID:-10182}"
-SOURCE_PRIVATE_LAYOUT="${SOURCE_PRIVATE_LAYOUT:-false}"
-
-# SOURCE_PLID is auto-derived from SOURCE_GROUP_ID at startup via a simple
-# `SELECT MIN(plid) FROM Layout WHERE companyId=<source company>` lookup.
-# Override here only if the auto-pick happens to land on a layout you don't
-# want used as the ExportImportPortlet form's ThemeDisplay context — any
-# Layout.plid in the same company is functionally equivalent.
-# SOURCE_PLID=""
-
-# -----------------------------------------------------------------------------
-# Source DB (compare.sh)
-# -----------------------------------------------------------------------------
-
-SRC_DB_HOST="${SRC_DB_HOST:-localhost}"
-SRC_DB_PORT="${SRC_DB_PORT:-3306}"
-SRC_DB_NAME="${SRC_DB_NAME:-lportal}"
-SRC_DB_USER="${SRC_DB_USER:-liferay}"
-SRC_DB_PASS="${SRC_DB_PASS:-liferay}"
-
-# -----------------------------------------------------------------------------
 # Target company & site (compare.sh)
 # -----------------------------------------------------------------------------
 
@@ -136,16 +139,6 @@ NEW_INSTANCE_ADMIN_FIRST_NAME="${NEW_INSTANCE_ADMIN_FIRST_NAME:-Test}"
 NEW_INSTANCE_ADMIN_LAST_NAME="${NEW_INSTANCE_ADMIN_LAST_NAME:-Test}"
 
 NEW_SITE_NAME="${NEW_SITE_NAME:-Imported Site ${RUN_ID}}"
-
-# -----------------------------------------------------------------------------
-# Target DB (compare.sh)
-# -----------------------------------------------------------------------------
-
-TGT_DB_HOST="${TGT_DB_HOST:-localhost}"
-TGT_DB_PORT="${TGT_DB_PORT:-3306}"
-TGT_DB_NAME="${TGT_DB_NAME:-lportal}"
-TGT_DB_USER="${TGT_DB_USER:-liferay}"
-TGT_DB_PASS="${TGT_DB_PASS:-liferay}"
 
 # -----------------------------------------------------------------------------
 # Assets
@@ -218,7 +211,6 @@ EXTRA_TESTS="${EXTRA_TESTS:-friendly_url}"
 #   tags:AssetTag – Identifiers https://liferay.atlassian.net/browse/LPD-85252
 #   web_content:JournalFolder – Dates (https://liferay.atlassian.net/browse/LPD-86888)
 IGNORE_TESTS="${IGNORE_TESTS:-blogs:BlogsEntry – Small image and cover image caption,blogs:BlogsEntry – Content checksums,categories:AssetCategory - Dates,documents_and_media:DLFileEntryType – Dates,documents_and_media:DLFileEntryMetadata – Identifiers,forms:DDMFormInstanceReport – Dates,fragments:FragmentComposition – Total count,fragments:FragmentComposition – Identifiers,fragments:FragmentComposition – Names and descriptions,fragments:FragmentComposition – Core fields,fragments:FragmentComposition – Data checksum,fragments:FragmentComposition – Dates,fragments:FragmentEntryLink – Dates,navigation_menus:SiteNavigationMenu – Dates,navigation_menus:SiteNavigationMenu – Identifiers,navigation_menus:SiteNavigationMenuItem – Identifiers,navigation_menus:SiteNavigationMenuItem – Dates,page_templates:Master Pages – Identifiers,page_templates:Master Pages – Dates,page_templates:Page Template Collections – Identifiers,page_templates:Page Template Collections – Dates,page_templates:Page Templates – Identifiers,page_templates:Page Templates – Dates,page_templates:Display Page Templates – Identifiers,page_templates:Display Page Templates – Dates,site_pages:Layout – Dates,site_pages:LayoutSet – Dates,tags:AssetTag – Dates,web_content:JournalFolder – Dates}"
-
 
 # =============================================================================
 # Catalog wiring
