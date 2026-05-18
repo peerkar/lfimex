@@ -245,6 +245,13 @@ test_calendar() {
     # =========================================================================
     # CalendarNotificationTemplate
     # =========================================================================
+    #
+    # Gate the whole section on source-side presence. Liferay auto-creates
+    # default CalendarNotificationTemplate rows when a new Calendar is
+    # provisioned on the target — so a freshly imported site can have rows
+    # the source never had, producing false-positive diffs against an empty
+    # source. Skip the section entirely when source carries nothing.
+    if src_has_rows CalendarNotificationTemplate; then
 
     check "CalendarNotificationTemplate – Total Count" "
         SELECT
@@ -317,4 +324,8 @@ test_calendar() {
           $(date_filter modifiedDate)
         ORDER BY uuid_;
     "
+
+    else
+        skip_section "CalendarNotificationTemplate" "no rows on source"
+    fi
 }

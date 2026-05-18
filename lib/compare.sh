@@ -274,6 +274,43 @@ _norm_for_diff() {
     sed 's/[[:space:]]*|/|/g'
 }
 
+# src_has_rows TABLE [extra_where]
+# Returns success (0) when the source DB has at least one row in `TABLE`
+# matching the active SRC_GROUP_ID and ctCollectionId=0 (plus the optional
+# extra WHERE fragment). Use to gate a section of checks that the source
+# has nothing to validate — without this guard, target-side rows created
+# automatically during site provisioning (e.g. default
+# CalendarNotificationTemplates, default LayoutUtilityPageEntries that
+# ship with a site template) would diff against an empty source and
+# produce false positives.
+#
+# Example:
+#   if src_has_rows LayoutUtilityPageEntry; then
+#       check "Utility Pages – Count" "..."
+#       ...
+#   else
+#       skip_section "Utility Pages" "no rows on source"
+#   fi
+src_has_rows() {
+    local table="$1" extra="${2:-}"
+    local count
+    count=$(_raw_src "SELECT COUNT(*) FROM ${table}
+                      WHERE groupId = ${SRC_GROUP_ID}
+                        AND ctCollectionId = 0 ${extra};" 2>/dev/null)
+    count="${count//[[:space:]]/}"
+    [[ -n "$count" && "$count" != "0" ]]
+}
+
+# skip_section LABEL [REASON]
+# Logs a SKIP line and records an IGNORED entry so the summary counters
+# reflect the bypass. Pair with src_has_rows() to skip whole sub-sections.
+skip_section() {
+    local label="$1" reason="${2:-empty on source}"
+    _log ""
+    _log "  ⊘ SKIP   $label  (${reason})"
+    CHECK_LOG+=("${CURRENT_TEST:-}|IGNORED|${label}")
+}
+
 # check "Label" "SQL with __GROUPID__ / __COMPANYID__ placeholders"
 # Substitutes both SRC/TGT values, runs against both DBs, diffs, logs result.
 # Tests interpolate $(date_filter <column>) inside the SQL when they want to

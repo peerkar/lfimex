@@ -9,6 +9,18 @@
 #   DLFileVersion has no head/latest flag. Latest version is resolved by
 #   joining DLFileEntry.version = DLFileVersion.version to avoid
 #   lexicographic issues with MAX() on a varchar version column.
+#
+# Export-ADQ alignment:
+#   FileEntryStagedModelRepository.getExportActionableDynamicQuery filters
+#   DLFileEntry to rows where the latest DLFileVersion.status = APPROVED (0)
+#   and repositoryId is in DLExportableRepositoryPublisherUtil.publish(...),
+#   which for sites is effectively repositoryId = groupId (mounted external
+#   repos are excluded). Trashed file entries and rows in mounted repos
+#   therefore never ship, so the source-side count must filter the same way
+#   or it drifts above the importable count on the target.
+#   FolderStagedModelRepository likewise restricts to repositoryId = groupId
+#   and skips trashed folders at perform time; the FileShortcut ADQ adds
+#   active_ = TRUE. All counts/identifier queries below mirror those filters.
 # =============================================================================
 
 test_documents_and_media() {
@@ -21,46 +33,70 @@ test_documents_and_media() {
     check "DLFileEntry – Total count" "
         SELECT
             COUNT(*)        AS total_files
-        FROM DLFileEntry
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-          $(date_filter modifiedDate);
+        FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
+        WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
+          AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate);
     "
 
     check "DLFileEntry – Count by MIME type" "
         SELECT
-            mimeType,
+            fe.mimeType,
             COUNT(*)        AS total
-        FROM DLFileEntry
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-          $(date_filter modifiedDate)
-        GROUP BY mimeType
-        ORDER BY mimeType;
+        FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
+        WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
+          AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
+        GROUP BY fe.mimeType
+        ORDER BY fe.mimeType;
     "
 
     check "DLFileEntry – Identifiers" "
         SELECT
-            externalReferenceCode,
-            uuid_,
-            fileName
-        FROM DLFileEntry
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-          $(date_filter modifiedDate)
-        ORDER BY externalReferenceCode;
+            fe.externalReferenceCode,
+            fe.uuid_,
+            fe.fileName
+        FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
+        WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
+          AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
+        ORDER BY fe.externalReferenceCode;
     "
 
     check "DLFileEntry – Titles and descriptions" "
         SELECT
-            externalReferenceCode,
-            title,
-            description
-        FROM DLFileEntry
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-          $(date_filter modifiedDate)
-        ORDER BY externalReferenceCode;
+            fe.externalReferenceCode,
+            fe.title,
+            fe.description
+        FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
+        WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
+          AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
+        ORDER BY fe.externalReferenceCode;
     "
 
     check "DLFileEntry – Core fields" "
@@ -73,6 +109,11 @@ test_documents_and_media() {
             COALESCE(ft.fileEntryTypeKey, '(basic document)') AS file_entry_type,
             COALESCE(f.externalReferenceCode, '(root)')       AS folder_erc
         FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
         LEFT JOIN DLFileEntryType ft
                ON ft.fileEntryTypeId  = fe.fileEntryTypeId
               AND ft.ctCollectionId   = 0
@@ -80,6 +121,7 @@ test_documents_and_media() {
                ON f.folderId          = fe.folderId
               AND f.ctCollectionId    = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fe.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode;
@@ -91,10 +133,16 @@ test_documents_and_media() {
             fe.fileName,
             COUNT(*)        AS version_count
         FROM DLFileEntry fe
+        JOIN DLFileVersion latest
+          ON latest.fileEntryId    = fe.fileEntryId
+         AND latest.version        = fe.version
+         AND latest.ctCollectionId = 0
+         AND latest.status         = 0
         JOIN DLFileVersion fv
           ON fv.fileEntryId    = fe.fileEntryId
          AND fv.ctCollectionId = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fe.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         GROUP BY fe.externalReferenceCode, fe.fileName
@@ -103,17 +151,23 @@ test_documents_and_media() {
 
     check "DLFileEntry – Dates" "
         SELECT
-            externalReferenceCode,
-            displayDate,
-            createDate,
-            modifiedDate,
-            expirationDate,
-            reviewDate
-        FROM DLFileEntry
-        WHERE groupId        = __GROUPID__
-          AND ctCollectionId = 0
-          $(date_filter modifiedDate)
-        ORDER BY externalReferenceCode;
+            fe.externalReferenceCode,
+            fe.displayDate,
+            fe.createDate,
+            fe.modifiedDate,
+            fe.expirationDate,
+            fe.reviewDate
+        FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
+        WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
+          AND fe.ctCollectionId = 0
+          $(date_filter fe.modifiedDate)
+        ORDER BY fe.externalReferenceCode;
     "
 
     # =========================================================================
@@ -127,7 +181,13 @@ test_documents_and_media() {
         JOIN DLFileEntry fe
           ON fe.fileEntryId    = fem.fileEntryId
          AND fe.ctCollectionId = 0
-        WHERE fe.groupId       = __GROUPID__
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
+        WHERE fe.groupId         = __GROUPID__
+          AND fe.repositoryId    = fe.groupId
           AND fem.ctCollectionId = 0
           $(date_filter fe.modifiedDate);
     "
@@ -140,10 +200,16 @@ test_documents_and_media() {
         JOIN DLFileEntry fe
           ON fe.fileEntryId      = fem.fileEntryId
          AND fe.ctCollectionId   = 0
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
         LEFT JOIN DLFileEntryType ft
                ON ft.fileEntryTypeId  = fe.fileEntryTypeId
               AND ft.ctCollectionId   = 0
         WHERE fe.groupId         = __GROUPID__
+          AND fe.repositoryId    = fe.groupId
           AND fem.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         GROUP BY file_entry_type
@@ -173,6 +239,11 @@ test_documents_and_media() {
         JOIN DLFileEntry fe
           ON fe.fileEntryId      = fem.fileEntryId
          AND fe.ctCollectionId   = 0
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
         JOIN DDMStructure ds
           ON ds.structureId      = fem.DDMStructureId
          AND ds.ctCollectionId   = 0
@@ -184,6 +255,7 @@ test_documents_and_media() {
          AND dfa.storageId       = fem.DDMStorageId
          AND dfa.ctCollectionId  = 0
         WHERE fe.groupId         = __GROUPID__
+          AND fe.repositoryId    = fe.groupId
           AND fem.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         GROUP BY fe.externalReferenceCode, ds.structureKey
@@ -265,6 +337,7 @@ test_documents_and_media() {
         FROM DLFileShortcut
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          AND active_        = TRUE
           $(date_filter modifiedDate);
     "
 
@@ -275,6 +348,7 @@ test_documents_and_media() {
         FROM DLFileShortcut
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          AND active_        = TRUE
           $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
@@ -291,6 +365,7 @@ test_documents_and_media() {
          AND fe.ctCollectionId = 0
         WHERE fs.groupId        = __GROUPID__
           AND fs.ctCollectionId = 0
+          AND fs.active_        = TRUE
           $(date_filter fs.modifiedDate)
         ORDER BY fs.externalReferenceCode;
     "
@@ -303,6 +378,7 @@ test_documents_and_media() {
         FROM DLFileShortcut
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
+          AND active_        = TRUE
           $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
@@ -318,7 +394,13 @@ test_documents_and_media() {
         JOIN DLFileEntry fe
           ON fe.fileEntryId    = fv.fileEntryId
          AND fe.ctCollectionId = 0
+        JOIN DLFileVersion latest
+          ON latest.fileEntryId    = fe.fileEntryId
+         AND latest.version        = fe.version
+         AND latest.ctCollectionId = 0
+         AND latest.status         = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fv.ctCollectionId = 0
           $(date_filter fe.modifiedDate);
     "
@@ -335,7 +417,9 @@ test_documents_and_media() {
           ON fv.fileEntryId    = fe.fileEntryId
          AND fv.version        = fe.version
          AND fv.ctCollectionId = 0
+         AND fv.status         = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fe.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode;
@@ -350,7 +434,9 @@ test_documents_and_media() {
           ON fv.fileEntryId    = fe.fileEntryId
          AND fv.version        = fe.version
          AND fv.ctCollectionId = 0
+         AND fv.status         = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fe.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode;
@@ -369,7 +455,13 @@ test_documents_and_media() {
         JOIN DLFileEntry fe
           ON fe.fileEntryId    = fv.fileEntryId
          AND fe.ctCollectionId = 0
+        JOIN DLFileVersion latest
+          ON latest.fileEntryId    = fe.fileEntryId
+         AND latest.version        = fe.version
+         AND latest.ctCollectionId = 0
+         AND latest.status         = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fv.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         ORDER BY fe.externalReferenceCode, fv.version;
@@ -384,7 +476,9 @@ test_documents_and_media() {
             COUNT(*)        AS total_folders
         FROM DLFolder
         WHERE groupId        = __GROUPID__
+          AND repositoryId   = groupId
           AND ctCollectionId = 0
+          AND status        <> 8
           $(date_filter modifiedDate);
     "
 
@@ -395,7 +489,9 @@ test_documents_and_media() {
             name
         FROM DLFolder
         WHERE groupId        = __GROUPID__
+          AND repositoryId   = groupId
           AND ctCollectionId = 0
+          AND status        <> 8
           $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
@@ -407,7 +503,9 @@ test_documents_and_media() {
             description
         FROM DLFolder
         WHERE groupId        = __GROUPID__
+          AND repositoryId   = groupId
           AND ctCollectionId = 0
+          AND status        <> 8
           $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
@@ -422,7 +520,9 @@ test_documents_and_media() {
                ON p.folderId       = f.parentFolderId
               AND p.ctCollectionId = 0
         WHERE f.groupId        = __GROUPID__
+          AND f.repositoryId   = f.groupId
           AND f.ctCollectionId = 0
+          AND f.status        <> 8
           $(date_filter f.modifiedDate)
         ORDER BY f.externalReferenceCode;
     "
@@ -433,10 +533,16 @@ test_documents_and_media() {
             COALESCE(f.name, '(root)')                  AS folder_name,
             COUNT(*)                                    AS file_count
         FROM DLFileEntry fe
+        JOIN DLFileVersion fv
+          ON fv.fileEntryId    = fe.fileEntryId
+         AND fv.version        = fe.version
+         AND fv.ctCollectionId = 0
+         AND fv.status         = 0
         LEFT JOIN DLFolder f
                ON f.folderId       = fe.folderId
               AND f.ctCollectionId = 0
         WHERE fe.groupId        = __GROUPID__
+          AND fe.repositoryId   = fe.groupId
           AND fe.ctCollectionId = 0
           $(date_filter fe.modifiedDate)
         GROUP BY folder_erc, folder_name
@@ -450,7 +556,9 @@ test_documents_and_media() {
             modifiedDate
         FROM DLFolder
         WHERE groupId        = __GROUPID__
+          AND repositoryId   = groupId
           AND ctCollectionId = 0
+          AND status        <> 8
           $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
@@ -472,6 +580,8 @@ test_documents_and_media() {
           ON f.folderId          = m.folderId
          AND f.ctCollectionId    = 0
         WHERE f.groupId          = __GROUPID__
+          AND f.repositoryId     = f.groupId
+          AND f.status          <> 8
           AND m.ctCollectionId   = 0
           $(date_filter f.modifiedDate)
         ORDER BY ft.externalReferenceCode, f.externalReferenceCode;

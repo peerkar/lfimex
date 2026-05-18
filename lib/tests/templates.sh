@@ -10,6 +10,23 @@
 #                                                   → Widget Display Templates
 #   com.liferay.dynamic.data.mapping.model.DDMStructure
 #                                                   → Structure Templates (legacy)
+#
+# Scope of this test:
+#   We exclude DDMStructure-class rows from every DDMTemplate check below.
+#   TemplatePortlet (the asset_register backing this test) does NOT export
+#   DDMStructure-class templates — they're owned by whichever portlet ships
+#   the underlying structure. In practice that means:
+#     * structures with classNameId = JournalArticle → carried by web_content
+#       (JournalPortlet exports its DDMStructures with their dependent
+#       DDMTemplates as strong references)
+#     * structures with classNameId = DDLRecordSet → not migrated by lfimex
+#       (DDL isn't in config/asset_catalog.sh)
+#     * orphan templates with classPK = 0 → fall through every handler
+#   Validating those rows in this test would surface drift that belongs in
+#   the web_content test (when its referenced structures are missing) or
+#   represents real Liferay coverage gaps (DDL, classPK=0 orphans) that no
+#   asset migration handles. Scoping this test to the templates that
+#   TemplatePortlet actually owns keeps it actionable.
 # =============================================================================
 
 test_templates() {
@@ -25,6 +42,8 @@ test_templates() {
         FROM DDMTemplate
         WHERE groupId         = __GROUPID__
           AND ctCollectionId  = 0
+          AND classNameId    != (SELECT classNameId FROM ClassName_
+                                 WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter modifiedDate);
     "
 
@@ -38,6 +57,7 @@ test_templates() {
           ON cn.classNameId     = t.classNameId
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND cn.value         != 'com.liferay.dynamic.data.mapping.model.DDMStructure'
           $(date_filter t.modifiedDate)
         GROUP BY cn.value, t.type_
         ORDER BY cn.value, t.type_;
@@ -51,6 +71,8 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -64,6 +86,8 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -81,6 +105,7 @@ test_templates() {
           ON cn.classNameId     = t.classNameId
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND cn.value         != 'com.liferay.dynamic.data.mapping.model.DDMStructure'
           $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -93,6 +118,8 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -107,6 +134,8 @@ test_templates() {
               AND ds.ctCollectionId = 0
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -119,6 +148,8 @@ test_templates() {
         FROM DDMTemplate t
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter t.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -139,6 +170,8 @@ test_templates() {
           ON cn.classNameId     = tl.classNameId
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter t.modifiedDate)
         GROUP BY cn.value
         ORDER BY cn.value;
@@ -148,21 +181,14 @@ test_templates() {
     # DDMTemplateVersion
     # =========================================================================
 
-    check "DDMTemplateVersion – Version count per template" "
-        SELECT
-            t.externalReferenceCode,
-            COUNT(*)            AS version_count
-        FROM DDMTemplate t
-        JOIN DDMTemplateVersion tv
-          ON tv.templateId      = t.templateId
-             AND tv.ctCollectionId = 0
-        WHERE t.groupId         = __GROUPID__
-          AND t.ctCollectionId  = 0
-          $(date_filter tv.modifiedDate)
-        GROUP BY t.externalReferenceCode
-        ORDER BY t.externalReferenceCode;
-    "
-
+    # DDMTemplate.version is varchar (e.g. "1.13"). Using MAX(tv.version) to
+    # resolve the latest row falls into a lexicographic trap: MAX("1.13",
+    # "1.9") = "1.9", so any template with 10+ versions ends up matched
+    # against an older row. DDMTemplate carries the current version string
+    # itself, so joining t.version = tv.version selects the actual head
+    # version — same pattern the DM test uses for DLFileVersion (see the
+    # version note in lib/tests/documents_and_media.sh and the CLAUDE.md
+    # entry it cites).
     check "DDMTemplateVersion – Latest version core fields" "
         SELECT
             t.externalReferenceCode,
@@ -170,15 +196,12 @@ test_templates() {
         FROM DDMTemplate t
         JOIN DDMTemplateVersion tv
           ON tv.templateId      = t.templateId
+             AND tv.version        = t.version
              AND tv.ctCollectionId = 0
-             AND tv.version     = (
-                 SELECT MAX(tv2.version)
-                 FROM DDMTemplateVersion tv2
-                 WHERE tv2.templateId    = t.templateId
-                   AND tv2.ctCollectionId = 0
-             )
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter tv.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -191,15 +214,12 @@ test_templates() {
         FROM DDMTemplate t
         JOIN DDMTemplateVersion tv
           ON tv.templateId      = t.templateId
+             AND tv.version        = t.version
              AND tv.ctCollectionId = 0
-             AND tv.version     = (
-                 SELECT MAX(tv2.version)
-                 FROM DDMTemplateVersion tv2
-                 WHERE tv2.templateId    = t.templateId
-                   AND tv2.ctCollectionId = 0
-             )
         WHERE t.groupId         = __GROUPID__
           AND t.ctCollectionId  = 0
+          AND t.classNameId    != (SELECT classNameId FROM ClassName_
+                                   WHERE value = 'com.liferay.dynamic.data.mapping.model.DDMStructure')
           $(date_filter tv.modifiedDate)
         ORDER BY t.externalReferenceCode;
     "
@@ -228,16 +248,33 @@ test_templates() {
         ORDER BY externalReferenceCode;
     "
 
+    # TemplateEntry.infoItemFormVariationKey for FileEntry-class rows is a
+    # raw DLFileEntryType.fileEntryTypeId — a Counter-generated surrogate PK
+    # that's reissued by the target's Counter on import (e.g. source
+    # 274524237 → target 524401163 even though both rows point at the same
+    # logical DLFileEntryType, ERC 5c112037…). Comparing the raw PK
+    # guarantees a false positive. Resolve to the DLFileEntryType's
+    # externalReferenceCode (a stable, source-authored key that's preserved
+    # across export/import) for FileEntry rows; pass through whatever's
+    # stored for other infoItemClassName values (typically NULL — BlogsEntry,
+    # AssetEntry, etc., don't use the field).
     check "TemplateEntry – Core fields" "
         SELECT
             te.externalReferenceCode,
             te.infoItemClassName,
-            te.infoItemFormVariationKey,
+            COALESCE(
+                ft.externalReferenceCode,
+                te.infoItemFormVariationKey
+            ) AS info_item_form_variation_key,
             dt.templateKey
         FROM TemplateEntry te
         JOIN DDMTemplate dt
           ON dt.templateId      = te.ddmTemplateId
              AND dt.ctCollectionId  = 0
+        LEFT JOIN DLFileEntryType ft
+          ON te.infoItemClassName = 'com.liferay.portal.kernel.repository.model.FileEntry'
+             AND ft.fileEntryTypeId  = CAST(te.infoItemFormVariationKey AS UNSIGNED)
+             AND ft.ctCollectionId   = 0
         WHERE te.groupId        = __GROUPID__
           AND te.ctCollectionId = 0
           $(date_filter te.modifiedDate)
