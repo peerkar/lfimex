@@ -165,7 +165,7 @@ OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 #       count gets dropped but the actual export still runs and the
 #       categories migrate correctly — verified via the per-asset
 #       category test counts matching across runs.
-LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing|The data handler for the .* portlet is missing from the system|No theme found for specified theme id .* Returning the default theme|AntiSamySanitizerImpl|\\[jericho:|Unable to update batch engine export task)}"
+LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing|The data handler for the .* portlet is missing from the system|No theme found for specified theme id .* Returning the default theme|AntiSamySanitizerImpl|[[]jericho:|Unable to update batch engine export task)}"
 
 # -----------------------------------------------------------------------------
 # Target company & site (compare.sh)
