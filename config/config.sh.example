@@ -132,7 +132,40 @@ OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 #       the LAR references a portlet that isn't deployed on the target (e.g.
 #       a custom module on source but absent on a fresh target). The import
 #       skips that portlet's data and continues. Not actionable from lfimex.
-LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing entity|The data handler for the .* portlet is missing from the system)}"
+#   - "No theme found for specified theme id ... Returning the default theme"
+#       ThemeLocalServiceImpl logs this when a LAR references a theme
+#       (e.g. osbcommunity_WAR_osbcommunitytheme) that isn't deployed on
+#       the target. Liferay falls back to the default theme; the import
+#       continues. Cosmetic when the source uses a theme module the
+#       target doesn't have installed.
+#   - AntiSamySanitizerImpl
+#       AntiSamySanitizerImpl logs one WARN per HTML attribute it strips
+#       while sanitizing content (e.g. data-lfr-editable-id, custom data-*
+#       attrs in fragment HTML). Imports of fragments and journal articles
+#       with rich HTML produce these by the hundreds. The sanitizer
+#       silently drops the attribute and keeps the tag, so the content
+#       still renders — no functional impact on the migration.
+#   - [jericho:NNN]
+#       Liferay's HTML parser (Jericho, the open-source library Liferay
+#       wraps for content scanning) logs ERROR on every malformed StartTag
+#       it encounters in imported HTML — "contains attribute name with
+#       invalid character/first character", "rejected because it contains
+#       too many errors", "whose content does not match a registered
+#       StartTagType". Imports with legacy/hand-edited journal-article
+#       HTML produce these by the dozen. Liferay continues parsing; the
+#       errors flag malformed source content, not a migration failure.
+#   - "Unable to update batch engine export task"
+#       BatchEngineExportTaskExecutorImpl logs this ERROR when its
+#       manifest-summary prep call to a TaskItemDelegate fails. For
+#       lfimex's category export it's a Liferay bug:
+#       TaxonomyCategoryResourceImpl.doGetSiteTaxonomyCategoriesPage NPEs
+#       on `new long[] {siteId}` because siteId arrives unbound even
+#       though the task parameters carry "siteId=NNNN". UI export hits a
+#       different code path and doesn't trip it. The manifest-summary
+#       count gets dropped but the actual export still runs and the
+#       categories migrate correctly — verified via the per-asset
+#       category test counts matching across runs.
+LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing|The data handler for the .* portlet is missing from the system|No theme found for specified theme id .* Returning the default theme|AntiSamySanitizerImpl|\\[jericho:|Unable to update batch engine export task)}"
 
 # -----------------------------------------------------------------------------
 # Target company & site (compare.sh)
@@ -199,6 +232,7 @@ EXTRA_TESTS="${EXTRA_TESTS:-friendly_url}"
 #   categories:AssetCategory - Dates (https://liferay.atlassian.net/browse/LPD-86888)
 #   documents_and_media:DLFileEntryType – Dates (https://liferay.atlassian.net/browse/LPD-86888)
 #   documents_and_media:DLFileEntryMetadata – Identifiers: Liferay regenerates the metadata ERC during import — value differs between
+#   documents_and_media:DLFolder – Dates (https://liferay.atlassian.net/browse/LPD-86888)
 #   forms:DDMFormInstanceReport – Dates (https://liferay.atlassian.net/browse/LPD-86888)
 #   fragments:FragmentComposition – Total count (https://liferay.atlassian.net/browse/LPD-86823)
 #   fragments:FragmentComposition – Identifiers (https://liferay.atlassian.net/browse/LPD-86823)
@@ -224,7 +258,7 @@ EXTRA_TESTS="${EXTRA_TESTS:-friendly_url}"
 #   tags:AssetTag – Dates (https://liferay.atlassian.net/browse/LPD-86888)
 #   tags:AssetTag – Identifiers https://liferay.atlassian.net/browse/LPD-85252
 #   web_content:JournalFolder – Dates (https://liferay.atlassian.net/browse/LPD-86888)
-IGNORE_TESTS="${IGNORE_TESTS:-blogs:BlogsEntry – Small image and cover image caption,blogs:BlogsEntry – Content checksums,categories:AssetCategory - Dates,documents_and_media:DLFileEntryType – Dates,documents_and_media:DLFileEntryMetadata – Identifiers,forms:DDMFormInstanceReport – Dates,fragments:FragmentComposition – Total count,fragments:FragmentComposition – Identifiers,fragments:FragmentComposition – Names and descriptions,fragments:FragmentComposition – Core fields,fragments:FragmentComposition – Data checksum,fragments:FragmentComposition – Dates,fragments:FragmentEntryLink – Dates,navigation_menus:SiteNavigationMenu – Dates,navigation_menus:SiteNavigationMenu – Identifiers,navigation_menus:SiteNavigationMenuItem – Identifiers,navigation_menus:SiteNavigationMenuItem – Dates,page_templates:Master Pages – Identifiers,page_templates:Master Pages – Dates,page_templates:Page Template Collections – Identifiers,page_templates:Page Template Collections – Dates,page_templates:Page Templates – Identifiers,page_templates:Page Templates – Dates,page_templates:Display Page Templates – Identifiers,page_templates:Display Page Templates – Dates,site_pages:Layout – Dates,site_pages:LayoutSet – Dates,tags:AssetTag – Dates,web_content:JournalFolder – Dates}"
+IGNORE_TESTS="${IGNORE_TESTS:-blogs:BlogsEntry – Small image and cover image caption,blogs:BlogsEntry – Content checksums,categories:AssetCategory - Dates,documents_and_media:DLFileEntryType – Dates,documents_and_media:DLFileEntryMetadata – Identifiers,documents_and_media:DLFolder – Dates,forms:DDMFormInstanceReport – Dates,fragments:FragmentComposition – Total count,fragments:FragmentComposition – Identifiers,fragments:FragmentComposition – Names and descriptions,fragments:FragmentComposition – Core fields,fragments:FragmentComposition – Data checksum,fragments:FragmentComposition – Dates,fragments:FragmentEntryLink – Dates,navigation_menus:SiteNavigationMenu – Dates,navigation_menus:SiteNavigationMenu – Identifiers,navigation_menus:SiteNavigationMenuItem – Identifiers,navigation_menus:SiteNavigationMenuItem – Dates,page_templates:Master Pages – Identifiers,page_templates:Master Pages – Dates,page_templates:Page Template Collections – Identifiers,page_templates:Page Template Collections – Dates,page_templates:Page Templates – Identifiers,page_templates:Page Templates – Dates,page_templates:Display Page Templates – Identifiers,page_templates:Display Page Templates – Dates,site_pages:Layout – Dates,site_pages:LayoutSet – Dates,tags:AssetTag – Dates,web_content:JournalFolder – Dates}"
 
 # =============================================================================
 # Catalog wiring
