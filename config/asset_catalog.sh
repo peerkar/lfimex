@@ -246,11 +246,28 @@ asset_count_register documents_and_media "SELECT COUNT(*) FROM DLFileEntry fe JO
 asset_count_register forms              "SELECT COUNT(*) FROM DDMFormInstance WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
 asset_count_register fragments          "SELECT COUNT(*) FROM FragmentEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 AND fragmentCollectionId!=0 AND status=0 __DATE_FILTER__" "modifiedDate"
 asset_count_register navigation_menus   "SELECT COUNT(*) FROM SiteNavigationMenu WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
-asset_count_register page_templates     "SELECT COUNT(*) FROM LayoutPageTemplateEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND status=0 __DATE_FILTER__" "modifiedDate"
+# page_templates: status IN (0,2) — BatchEngine import auto-promotes DRAFT (2) → APPROVED (0)
+# on target (see "Master Pages – Core fields" rationale in lib/tests/page_templates.sh).
+# Source's DRAFTs sit on top of approved pages with the same ERC; both land as status=0
+# on target. status=0 only would undercount source by the draft-on-top count.
+asset_count_register page_templates     "SELECT COUNT(*) FROM LayoutPageTemplateEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND status IN (0,2) __DATE_FILTER__" "modifiedDate"
 asset_count_register segments           "SELECT COUNT(*) FROM SegmentsEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
-asset_count_register site_pages         "SELECT COUNT(*) FROM Layout WHERE groupId=__GID__ AND ctCollectionId=0 AND system_=0 AND status=0 __DATE_FILTER__" "modifiedDate"
+# site_pages: same draft-promotion as page_templates — Liferay's Layout import lands
+# every imported row as status=0 regardless of source state. See header note in
+# lib/tests/site_pages.sh for the DRAFT-on-top-of-APPROVED workflow detail.
+asset_count_register site_pages         "SELECT COUNT(*) FROM Layout WHERE groupId=__GID__ AND ctCollectionId=0 AND system_=0 AND status IN (0,2) __DATE_FILTER__" "modifiedDate"
 asset_count_register style_books        "SELECT COUNT(*) FROM StyleBookEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 __DATE_FILTER__" "modifiedDate"
 asset_count_register tags               "SELECT COUNT(*) FROM AssetTag WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
-asset_count_register templates          "SELECT COUNT(*) FROM DDMTemplate WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
-asset_count_register web_content        "SELECT COUNT(*) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.status=0 AND ja.version=(SELECT MAX(ja2.version) FROM JournalArticle ja2 WHERE ja2.articleId=ja.articleId AND ja2.groupId=ja.groupId AND ja2.ctCollectionId=0) __DATE_FILTER__" "ja.modifiedDate"
+# templates: exclude DDMStructure-class. TemplatePortlet (the templates asset) ships
+# only non-DDMStructure rows; DDMStructure-class templates ride along with JournalPortlet
+# in web_content (see header in lib/tests/templates.sh for the coverage-gap rationale).
+# Without the filter, the count compares "DDMTemplate + DDMStructure-class consolidation
+# leftovers" which drift by the consolidation delta.
+asset_count_register templates          "SELECT COUNT(*) FROM DDMTemplate WHERE groupId=__GID__ AND ctCollectionId=0 AND classNameId != (SELECT classNameId FROM ClassName_ WHERE value='com.liferay.dynamic.data.mapping.model.DDMStructure') __DATE_FILTER__" "modifiedDate"
+# web_content: COUNT(DISTINCT articleId) WHERE status=0 — the actionable
+# "exportable article count". version = MAX(version) AND status=0 misses articles
+# whose latest version is a DRAFT sitting on top of an APPROVED earlier version
+# (the export ships the approved one; target shows it but source's MAX-version
+# filter excludes it). See lib/tests/web_content.sh for the verified example.
+asset_count_register web_content        "SELECT COUNT(DISTINCT ja.articleId) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.status=0 __DATE_FILTER__" "ja.modifiedDate"
 asset_count_register wiki               "SELECT COUNT(*) FROM WikiPage WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 AND status=0 __DATE_FILTER__" "modifiedDate"
