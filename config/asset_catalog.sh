@@ -75,6 +75,11 @@ _com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.
 _com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
   "page_templates"
 
+asset_register forms "Forms" \
+  "com_liferay_dynamic_data_mapping_form_web_portlet_DDMFormAdminPortlet" \
+  "" \
+  "forms"
+
 # Site pages: the actual Layout tree. There are no form fields here because
 # ExportLayoutsMVCActionCommand picks layouts via PortalPreferences/
 # SessionTreeJSClicks, not the parameter map. step_export detects this asset
@@ -145,11 +150,6 @@ asset_register documents_and_media "Documents and Media" \
   "com_liferay_document_library_web_portlet_DLAdminPortlet" \
   "" \
   "documents_and_media"
-
-asset_register forms "Forms" \
-  "com_liferay_dynamic_data_mapping_form_web_portlet_DDMFormAdminPortlet" \
-  "" \
-  "forms"
 
 asset_register fragments "Fragments" \
   "com_liferay_fragment_web_portlet_FragmentPortlet" \
