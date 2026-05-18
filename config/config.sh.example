@@ -127,7 +127,12 @@ OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 #       referenced entity that doesn't exist on the target (cross-instance
 #       imports, pruned dependencies). Liferay degrades the reference to
 #       optional and the import continues. Cosmetic.
-LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing entity)}"
+#   - "The data handler for the \"...\" portlet is missing from the system"
+#       StagedGroupStagedModelDataHandler._importSitePortlets logs this when
+#       the LAR references a portlet that isn't deployed on the target (e.g.
+#       a custom module on source but absent on a fresh target). The import
+#       skips that portlet's data and continues. Not actionable from lfimex.
+LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing entity|The data handler for the .* portlet is missing from the system)}"
 
 # -----------------------------------------------------------------------------
 # Target company & site (compare.sh)
@@ -167,7 +172,7 @@ ASSETS="${ASSETS:-all}"
 #     source/target Global site as the form's groupId.
 # Use "all" for every globals_register entry plus every asset_register entry
 # that has a portlet; use "all,-blogs" to subtract from that.
-GLOBAL_ASSETS="${GLOBAL_ASSETS:-all}"
+GLOBAL_ASSETS="${GLOBAL_ASSETS:-custom_fields,page_templates,blogs,categories,collections,documents_and_media,forms,fragments,navigation_menus,segments,tags,templates,web_content,wiki}"
 
 # -----------------------------------------------------------------------------
 # Tests
