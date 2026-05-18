@@ -118,7 +118,16 @@ OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 #       render-after-action lands on a benign URL; Liferay's portal.url.* allow
 #       list often doesn't include it, so RedirectUtil logs a WARN for each
 #       POST. Cosmetic.
-LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-Redirect URL .* is not allowed}"
+#   - SerialDestination ClassCastException on liferay/asset_category_asset_entries_reindex
+#       Reindex message bus listener occasionally fails to deserialize the
+#       payload after a category import; the reindex is retried by Liferay's
+#       background task and succeeds. Cosmetic.
+#   - "Optional reference generated for missing entity"
+#       LAR import logs this whenever a staged model carries an ERC for a
+#       referenced entity that doesn't exist on the target (cross-instance
+#       imports, pruned dependencies). Liferay degrades the reference to
+#       optional and the import continues. Cosmetic.
+LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing entity)}"
 
 # -----------------------------------------------------------------------------
 # Target company & site (compare.sh)
