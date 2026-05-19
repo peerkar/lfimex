@@ -63,6 +63,30 @@ lfimex --assets documents_and_media --filter date-range \
 lfimex --assets documents_and_media \
        --ignore-tests 'documents_and_media:DLFileEntryType – Identifiers'
 
+# Import into an existing company on the same portal (created by an earlier
+# `lfimex` run, or any company you can address by Company.webId). Forces
+# reuse mode and routes site creation / import / cleanup at that company's
+# primary virtual host. Credentials default to the lfimex create convention
+# `test@<webId>` / `test`; set TARGET_USERNAME / TARGET_PASSWORD if the
+# target company uses different admin creds.
+lfimex --assets style_books \
+       --target-company-web-id importtest-20260519-095507.localhost
+
+# Iterate against a pre-existing site without re-creating it on every run.
+# --target-group-id pins the destination site (skips site create + cleanup);
+# MIRROR_OVERWRITE re-applies the source state in place so reruns converge.
+lfimex --assets web_content \
+       --target-group-id 20127 \
+       --import-strategy DATA_STRATEGY_MIRROR_OVERWRITE
+
+# Cross-company re-import into a fixed site — combine both flags. Useful
+# when developing a single asset's validation test against a long-lived
+# target site that lives in another company.
+lfimex --assets blogs \
+       --target-company-web-id importtest-20260519-095507.localhost \
+       --target-group-id 20127 \
+       --import-strategy DATA_STRATEGY_MIRROR_OVERWRITE
+
 ```
 
 ### Subset selection
@@ -91,6 +115,8 @@ Key variables:
 |---|---|
 | `BASE_URL`, `USERNAME`, `PASSWORD` | Source portal + admin credentials |
 | `SOURCE_COMPANY_WEB_ID`, `SOURCE_GROUP_ID` | Source site identity |
+| `TARGET_COMPANY_WEB_ID`, `TARGET_GROUP_ID` | Target company / pre-existing site (also `--target-company-web-id` / `--target-group-id`) |
+| `TARGET_BASE_URL`, `TARGET_USERNAME`, `TARGET_PASSWORD` | Target portal routing + admin creds. In cross-company reuse they default to `http://<webId>:<port>` and `test@<webId>` / `test` (the lfimex create convention); pin them if the target company uses different creds. |
 | `SRC_DB_*`, `TGT_DB_*` | Source / target MySQL connection |
 | `BUNDLES_DIR` | Local Liferay bundle (used for log capture, OSGi configs) |
 | `ASSETS`, `GLOBAL_ASSETS`, `EXTRA_TESTS`, `IGNORE_TESTS` | Run defaults the CLI flags can override |
