@@ -168,10 +168,38 @@ OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 LIFERAY_LOG_IGNORE_REGEX="${LIFERAY_LOG_IGNORE_REGEX:-(Redirect URL .* is not allowed|destinationName=liferay/asset_category_asset_entries_reindex|Optional reference generated for missing|The data handler for the .* portlet is missing from the system|No theme found for specified theme id .* Returning the default theme|AntiSamySanitizerImpl|[[]jericho:|Unable to update batch engine export task)}"
 
 # -----------------------------------------------------------------------------
-# Target company & site (compare.sh)
+# Target company & site
 # -----------------------------------------------------------------------------
 
+# Target portal company webId. Used by compare.sh, and — in INSTANCE_MODE=reuse
+# — by step_instance to resolve a target company different from the source.
+# When this differs from SOURCE_COMPANY_WEB_ID, step_instance looks the target
+# company up via Company.webId and points TARGET_BASE_URL at its primary
+# virtual host. TARGET_USERNAME / TARGET_PASSWORD must then be set to a valid
+# admin in that company. Default: the source company (same-instance import).
 TARGET_COMPANY_WEB_ID="${TARGET_COMPANY_WEB_ID:-${SOURCE_COMPANY_WEB_ID}}"
+
+# Pre-existing site groupId to import into. When set, step_site skips the
+# headless POST and reuses this group as the import target; step_cleanup
+# leaves it alone. The group must belong to the resolved target company
+# (validated at startup). Use this for iterative re-imports — combine with
+# IMPORT_DATA_STRATEGY=DATA_STRATEGY_MIRROR_OVERWRITE for clean reruns.
+# Implies INSTANCE_MODE=reuse (auto-flipped with a warning when set under
+# mode=create).
+TARGET_GROUP_ID="${TARGET_GROUP_ID:-}"
+
+# Target instance routing overrides. Auto-derived by step_instance when empty:
+#   reuse  — defaults to BASE_URL / USERNAME / PASSWORD (and the source
+#            company). If TARGET_COMPANY_WEB_ID points elsewhere,
+#            TARGET_BASE_URL is built from that company's primary VirtualHost
+#            hostname and the port portion of BASE_URL.
+#   create — always overwritten with the new company's vhost and admin creds
+#            (the user can't predict the auto-generated values).
+# Set these explicitly to override routing in reuse mode (e.g. a different
+# port, or a pre-deployed admin user that isn't your portal-wide USERNAME).
+TARGET_BASE_URL="${TARGET_BASE_URL:-}"
+TARGET_USERNAME="${TARGET_USERNAME:-test}"
+TARGET_PASSWORD="${TARGET_PASSWORD:-test}"
 
 # Defaults for the new instance created in mode=create.
 # Defaults end with .localhost so the virtual host resolves to 127.0.0.1 on
@@ -186,6 +214,15 @@ NEW_INSTANCE_ADMIN_FIRST_NAME="${NEW_INSTANCE_ADMIN_FIRST_NAME:-Test}"
 NEW_INSTANCE_ADMIN_LAST_NAME="${NEW_INSTANCE_ADMIN_LAST_NAME:-Test}"
 
 NEW_SITE_NAME="${NEW_SITE_NAME:-Imported Site ${RUN_ID}}"
+
+# Import data strategy for both site and globals imports. Liferay's options:
+#   DATA_STRATEGY_MIRROR             update entities matched by uuid/ERC,
+#                                    leave the rest untouched (default).
+#   DATA_STRATEGY_MIRROR_OVERWRITE   like MIRROR but force-overwrite matched
+#                                    entities. Best for repeatable re-imports
+#                                    into the same TARGET_GROUP_ID.
+#   DATA_STRATEGY_COPY_AS_NEW        always insert new rows; never match.
+IMPORT_DATA_STRATEGY="${IMPORT_DATA_STRATEGY:-DATA_STRATEGY_MIRROR}"
 
 # -----------------------------------------------------------------------------
 # Assets

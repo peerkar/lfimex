@@ -219,7 +219,8 @@ session_init() {
 # Usage: _session_login_into <base-url> <user> <pass> <cookie-jar> <p_auth-var-name>
 _session_login_into() {
   local base="$1" user="$2" pass="$3" jar="$4" out_var="$5"
-  local guest_page guest_p_auth user_page p_auth
+  local guest_page guest_p_auth landing_page p_auth
+  local jsessionid_before jsessionid_after
 
   if ! curl -sf -o /dev/null --connect-timeout 5 "${base}/web/guest"; then
     die "Cannot reach ${base}/web/guest. Is Tomcat running and the virtual host configured?"
@@ -229,16 +230,49 @@ _session_login_into() {
   guest_p_auth="$(_extract_p_auth "${guest_page}")"
   [ -n "${guest_p_auth}" ] || die "Could not read guest p_auth from ${base}/web/guest."
 
-  curl -s -c "${jar}" -b "${jar}" \
-    -d "login=${user}" -d "password=${pass}" -d "p_auth=${guest_p_auth}" \
-    -o /dev/null "${base}/c/portal/login"
+  jsessionid_before="$(_extract_jsessionid "${jar}")"
 
-  user_page="$(curl -s -b "${jar}" "${base}/web/guest")"
-  p_auth="$(_extract_p_auth "${user_page}")"
-  [ -n "${p_auth}" ] && [ "${p_auth}" != "${guest_p_auth}" ] \
-    || die "Login as ${user} at ${base} failed (p_auth did not rotate)."
+  # -L follows the post-login redirect so we read p_auth from the page Liferay
+  # actually lands the user on (their default page / control panel) instead of
+  # re-fetching /web/guest, which on a brand-new company can return a non-themed
+  # response that omits Liferay.authToken entirely and trips the rotation check.
+  landing_page="$(curl -s -L -c "${jar}" -b "${jar}" \
+    -d "login=${user}" -d "password=${pass}" -d "p_auth=${guest_p_auth}" \
+    "${base}/c/portal/login")"
+
+  jsessionid_after="$(_extract_jsessionid "${jar}")"
+
+  # With session.enable.phishing.protection=true (Liferay's default),
+  # AuthenticatedSessionManagerUtil renews the session on a successful login,
+  # so JSESSIONID rotation is a reliable success signal regardless of what the
+  # landing page looks like. authToken rotation isn't — see above.
+  [ -n "${jsessionid_after}" ] && [ "${jsessionid_after}" != "${jsessionid_before}" ] \
+    || die "Login as ${user} at ${base} failed (JSESSIONID did not rotate). \
+Liferay users are scoped per company — verify the user exists in this \
+company's User_ table and the password is correct."
+
+  p_auth="$(_extract_p_auth "${landing_page}")"
+  if [ -z "${p_auth}" ]; then
+    # Rare: landing page didn't include the global JS object (error page or
+    # non-themed response). The control panel always renders the full theme
+    # for an authenticated user, so use it as a last resort.
+    landing_page="$(curl -s -L -b "${jar}" "${base}/group/control_panel/manage")"
+    p_auth="$(_extract_p_auth "${landing_page}")"
+  fi
+  [ -n "${p_auth}" ] \
+    || die "Logged in as ${user} at ${base} but could not extract p_auth from the landing page."
 
   printf -v "${out_var}" '%s' "${p_auth}"
+}
+
+# Read the current JSESSIONID value from a curl cookie jar. Cookie files are
+# tab-separated Netscape format; HttpOnly cookies are prefixed with the
+# "#HttpOnly_" pseudo-comment which still parses into the same column layout.
+# Multiple JSESSIONID rows can exist for different paths/domains — take the
+# last one written (curl appends on update).
+_extract_jsessionid() {
+  [ -f "$1" ] || return 0
+  awk -F'\t' '$6 == "JSESSIONID" {v=$7} END {print v}' "$1"
 }
 
 # Source session: sets P_AUTH and USER_TIMEZONE for export-side calls.

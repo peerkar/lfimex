@@ -117,7 +117,7 @@ _global_form_fields() {
     printf -- '-F\n%srange=all\n' "${ns}"
     [ -n "${file_name}" ] && printf -- '-F\n%sexportFileName=%s\n' "${ns}" "${file_name}"
   elif [ "${cmd}" = "import" ]; then
-    printf -- '-F\n%sDATA_STRATEGY=DATA_STRATEGY_MIRROR\n' "${ns}"
+    printf -- '-F\n%sDATA_STRATEGY=%s\n' "${ns}" "${IMPORT_DATA_STRATEGY:-DATA_STRATEGY_MIRROR}"
     printf -- '-F\n%sUSER_ID_STRATEGY=CURRENT_USER_ID\n' "${ns}"
   fi
 

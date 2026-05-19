@@ -75,6 +75,16 @@ _step_cleanup_site() {
     return 0
   fi
 
+  # User-supplied site: we didn't create it, so we don't delete it. This is
+  # what makes --target-group-id safe to combine with --cleanup.
+  if [ -n "${TARGET_GROUP_ID:-}" ]; then
+    bundle_log_collect "${log_offset}" "${log_file}"
+    result_add "cleanup" "skip" "$(timer_elapsed "${timer}")" \
+      "$(bundle_log_summary "${log_file}")" \
+      "preserving user-supplied TARGET_GROUP_ID=${TARGET_GROUP_ID}"
+    return 0
+  fi
+
   log_info "Deleting site groupId=${NEW_SITE_GROUP_ID} via headless-admin-site"
 
   local response="${RUN_DIR}/cleanup.response.json"

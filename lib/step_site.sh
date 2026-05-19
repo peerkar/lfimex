@@ -17,6 +17,15 @@ step_site() {
     return 1
   fi
 
+  # When the user pins a pre-existing site, skip the create POST and just
+  # validate the group belongs to the resolved target company. This is the
+  # path for iterative re-imports — combine with IMPORT_DATA_STRATEGY=
+  # DATA_STRATEGY_MIRROR_OVERWRITE for clean reruns.
+  if [ -n "${TARGET_GROUP_ID:-}" ]; then
+    _step_site_reuse "${timer}" "${log_offset}" "${log_file}"
+    return $?
+  fi
+
   # Site slug derived from RUN_ID so multiple runs don't collide.
   slug="$(echo "${NEW_SITE_NAME}" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
   [ -z "${slug}" ] && slug="imported-${RUN_ID}"
@@ -85,4 +94,51 @@ step_site() {
   bundle_log_collect "${log_offset}" "${log_file}"
   result_add "create_site" "ok" "$(timer_elapsed "${timer}")" \
     "$(bundle_log_summary "${log_file}")" "groupId=${NEW_SITE_GROUP_ID} slug=/${slug}"
+}
+
+# Verify TARGET_GROUP_ID is a site, owned by the resolved target company, and
+# wire it up the same way the create path does: NEW_SITE_GROUP_ID for the
+# import POST, NEW_SITE_PLID for the ThemeDisplay context.
+_step_site_reuse() {
+  local timer="$1" log_offset="$2" log_file="$3"
+
+  local row group_company group_friendly group_site
+  row="$(mysql_q "SELECT companyId, friendlyURL, site FROM Group_ WHERE groupId=${TARGET_GROUP_ID};")"
+  if [ -z "${row}" ]; then
+    bundle_log_collect "${log_offset}" "${log_file}"
+    result_add "create_site" "fail" "$(timer_elapsed "${timer}")" \
+      "$(bundle_log_summary "${log_file}")" "no Group_ with groupId=${TARGET_GROUP_ID}"
+    return 1
+  fi
+  read -r group_company group_friendly group_site <<< "${row}"
+
+  if [ "${group_company}" != "${NEW_INSTANCE_COMPANY_ID}" ]; then
+    bundle_log_collect "${log_offset}" "${log_file}"
+    result_add "create_site" "fail" "$(timer_elapsed "${timer}")" \
+      "$(bundle_log_summary "${log_file}")" \
+      "TARGET_GROUP_ID=${TARGET_GROUP_ID} belongs to company ${group_company}, not target ${NEW_INSTANCE_COMPANY_ID}"
+    return 1
+  fi
+  if [ "${group_site}" != "1" ]; then
+    bundle_log_collect "${log_offset}" "${log_file}"
+    result_add "create_site" "fail" "$(timer_elapsed "${timer}")" \
+      "$(bundle_log_summary "${log_file}")" \
+      "TARGET_GROUP_ID=${TARGET_GROUP_ID} is not a site (Group_.site=${group_site})"
+    return 1
+  fi
+
+  NEW_SITE_GROUP_ID="${TARGET_GROUP_ID}"
+  NEW_SITE_PLID="$(_company_any_plid "${NEW_INSTANCE_COMPANY_ID}")"
+  if [ -z "${NEW_SITE_PLID}" ] || [ "${NEW_SITE_PLID}" = "NULL" ]; then
+    bundle_log_collect "${log_offset}" "${log_file}"
+    result_add "create_site" "fail" "$(timer_elapsed "${timer}")" \
+      "$(bundle_log_summary "${log_file}")" \
+      "no plid in target company ${NEW_INSTANCE_COMPANY_ID}"
+    return 1
+  fi
+
+  bundle_log_collect "${log_offset}" "${log_file}"
+  result_add "create_site" "skip" "$(timer_elapsed "${timer}")" \
+    "$(bundle_log_summary "${log_file}")" \
+    "reusing site ${NEW_SITE_GROUP_ID} (${group_friendly})"
 }

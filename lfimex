@@ -78,8 +78,14 @@ Options:
                            checks should be skipped. Use "*:<label>" to match
                            any test. Substring match on the label. Appends to
                            IGNORE_TESTS from config/config.sh.
+  --import-strategy <name> Data strategy for both site and globals imports.
+                           Valid: DATA_STRATEGY_MIRROR (default) |
+                           DATA_STRATEGY_MIRROR_OVERWRITE | DATA_STRATEGY_COPY_AS_NEW.
+                           MIRROR_OVERWRITE is the right choice for iterative
+                           re-imports into a fixed --target-group-id.
   --instance-mode <mode>   Target portal instance for the import:
-                             reuse   (default) use the source company
+                             reuse   (default) use the source company, or the
+                                     company named by --target-company-web-id.
                              create  spin up a fresh company via blade sh +
                                      lib/groovy/create-instance.groovy
   --list-assets            Print the registered asset catalog and exit.
@@ -87,6 +93,16 @@ Options:
                            import flow but skip the DB-level validation phase.
                            Useful when using this tool as a plain export/import
                            pipeline rather than a validator.
+  --target-company-web-id <webId>
+                           In INSTANCE_MODE=reuse, resolve the target company
+                           by this webId rather than reusing the source. The
+                           credentials in TARGET_USERNAME/TARGET_PASSWORD (or
+                           USERNAME/PASSWORD as fallback) must be valid in
+                           that company.
+  --target-group-id <id>   Pre-existing site groupId to import into. Skips
+                           site creation and site-delete cleanup. Implies
+                           reuse mode — combine with --import-strategy
+                           DATA_STRATEGY_MIRROR_OVERWRITE for clean reruns.
   --to-date <date>         Upper bound (inclusive) for date-range filter.
   -h, --help               Show this help.
 
@@ -117,7 +133,10 @@ while [ $# -gt 0 ]; do
       fi
       shift 2
       ;;
-    --instance-mode) INSTANCE_MODE="$2"; shift 2 ;;
+    --instance-mode) INSTANCE_MODE="$2"; INSTANCE_MODE_EXPLICIT=1; shift 2 ;;
+    --target-group-id) TARGET_GROUP_ID="$2"; shift 2 ;;
+    --target-company-web-id) TARGET_COMPANY_WEB_ID="$2"; shift 2 ;;
+    --import-strategy) IMPORT_DATA_STRATEGY="$2"; shift 2 ;;
     --cleanup) CLEANUP_INSTANCE=1; shift ;;
     --batch-mode) BATCH_MODE="$2"; shift 2 ;;
     --export-only) EXPORT_ONLY=1; shift ;;
@@ -163,6 +182,32 @@ case "${BATCH_MODE}" in
   per-asset|bundled) ;;
   *) die "Unknown --batch-mode: ${BATCH_MODE}. Valid: per-asset, bundled." ;;
 esac
+
+case "${IMPORT_DATA_STRATEGY:-DATA_STRATEGY_MIRROR}" in
+  DATA_STRATEGY_MIRROR|DATA_STRATEGY_MIRROR_OVERWRITE|DATA_STRATEGY_COPY_AS_NEW) ;;
+  *) die "Unknown --import-strategy: ${IMPORT_DATA_STRATEGY}. Valid: DATA_STRATEGY_MIRROR, DATA_STRATEGY_MIRROR_OVERWRITE, DATA_STRATEGY_COPY_AS_NEW." ;;
+esac
+
+# Pointing at a pre-existing target (a group, or a non-source company) only
+# makes sense when reusing an instance. Under create we'd spin up a fresh
+# company that wouldn't contain the named group / wouldn't equal the named
+# company webId, so the override gets silently ignored otherwise. Auto-flip
+# to reuse with a warning; hard-error if the user explicitly passed create.
+_target_override_reason=""
+if [ -n "${TARGET_GROUP_ID:-}" ]; then
+  _target_override_reason="TARGET_GROUP_ID=${TARGET_GROUP_ID}"
+elif [ -n "${TARGET_COMPANY_WEB_ID:-}" ] \
+     && [ "${TARGET_COMPANY_WEB_ID}" != "${SOURCE_COMPANY_WEB_ID}" ]; then
+  _target_override_reason="TARGET_COMPANY_WEB_ID=${TARGET_COMPANY_WEB_ID}"
+fi
+if [ -n "${_target_override_reason}" ] && [ "${INSTANCE_MODE:-reuse}" = "create" ]; then
+  if [ "${INSTANCE_MODE_EXPLICIT:-0}" = "1" ]; then
+    die "${_target_override_reason} is incompatible with --instance-mode create (the new company won't match an existing target). Drop one or the other."
+  fi
+  log_warn "${_target_override_reason} is set; overriding INSTANCE_MODE=${INSTANCE_MODE} → reuse"
+  INSTANCE_MODE="reuse"
+fi
+unset _target_override_reason
 
 # Verify mysql / curl / blade (conditionally) are on PATH before doing
 # anything else — otherwise the first DB query or Groovy invocation fails

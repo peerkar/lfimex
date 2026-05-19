@@ -84,7 +84,7 @@ step_import() {
     -F "${ns}privateLayout=false"
     -F "${ns}plid=${NEW_SITE_PLID}"
     -F "${ns}redirect=${redirect_url}"
-    -F "${ns}DATA_STRATEGY=DATA_STRATEGY_MIRROR"
+    -F "${ns}DATA_STRATEGY=${IMPORT_DATA_STRATEGY:-DATA_STRATEGY_MIRROR}"
     -F "${ns}LAYOUTS_IMPORT_MODE=CREATED_FROM_PROTOTYPE"
     -F "${ns}USER_ID_STRATEGY=CURRENT_USER_ID"
     -F "${ns}DELETE_PORTLET_DATA=false"
