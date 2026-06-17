@@ -54,7 +54,11 @@ lfimex --skip-validation
 # sibling site.
 lfimex --instance-mode reuse --cleanup
 
-# Date-range scoped export.
+# Date-range scoped export. NOTE: DB validation is skipped entirely when a
+# date filter is active — Liferay's import rewrites modifiedDate (and the
+# export is date-scoped), so source and target can't be compared by date. The
+# run exports/imports normally and prints a notice; use --filter all to get
+# the full validation pass.
 lfimex --assets documents_and_media --filter date-range \
        --from-date 2023-12-01 --to-date 2026-05-13
 
@@ -194,3 +198,4 @@ Full log lands in a `/tmp/lfimex-compare-*.log` file (or `LOG_FILE=/path/...` to
 - Generated IDs are never compared across environments — checks use `uuid_`, `externalReferenceCode`, or natural keys.
 - Version numbers are excluded (Liferay resets them to 1 on import).
 - `LIFERAY_LOG_IGNORE_REGEX` masks known Liferay log false positives during bundle-log capture.
+- DB validation is skipped when `--filter date-range` is used. Liferay's import stamps a fresh `modifiedDate` on most entities (and the export only ships the in-window subset), so source and target rows can't be matched by date. Such runs export/import normally and log a notice; the `ASSET COUNTS` diff is suppressed too. Run with `--filter all` to validate.
