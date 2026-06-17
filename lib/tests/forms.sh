@@ -144,7 +144,7 @@ test_forms() {
         FROM DDMFormInstanceRecordVersion
         WHERE groupId = __GROUPID__
           AND ctCollectionId = 0
-          $(date_filter modifiedDate);
+          $(date_filter createDate);
     "
 
     check "DDMFormInstanceRecordVersion – Record version count per form" "
@@ -160,7 +160,7 @@ test_forms() {
              AND rv.ctCollectionId = 0
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
-          $(date_filter rv.modifiedDate)
+          $(date_filter rv.createDate)
         GROUP BY fi.uuid_
         ORDER BY fi.uuid_;
     "
@@ -185,7 +185,7 @@ test_forms() {
              )
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
-          $(date_filter rv.modifiedDate)
+          $(date_filter rv.createDate)
         ORDER BY fi.uuid_, rec.uuid_;
     "
 
@@ -269,7 +269,7 @@ test_forms() {
              )
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
-          $(date_filter fiv.modifiedDate)
+          $(date_filter fiv.createDate)
         ORDER BY fi.uuid_;
     "
 
@@ -290,7 +290,7 @@ test_forms() {
              )
         WHERE fi.groupId = __GROUPID__
           AND fi.ctCollectionId = 0
-          $(date_filter fiv.modifiedDate)
+          $(date_filter fiv.createDate)
         ORDER BY fi.uuid_;
     "
 
