@@ -46,7 +46,6 @@ test_site_pages() {
           AND ctCollectionId = 0
           AND status         IN (0, 2)
           AND system_        = 0
-          $(date_filter modifiedDate)
         GROUP BY type_, privateLayout, hidden_;
     "
 
@@ -70,7 +69,6 @@ test_site_pages() {
           AND ctCollectionId = 0
           AND status         IN (0, 2)
           AND system_        = 0
-          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -118,7 +116,6 @@ test_site_pages() {
           AND l.ctCollectionId = 0
           AND l.status         IN (0, 2)
           AND l.system_        = 0
-          $(date_filter l.modifiedDate)
         GROUP BY l.externalReferenceCode
         ORDER BY l.externalReferenceCode;
     "
@@ -142,7 +139,6 @@ test_site_pages() {
           AND ctCollectionId = 0
           AND status         IN (0, 2)
           AND system_        = 0
-          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -169,7 +165,6 @@ test_site_pages() {
           AND l.ctCollectionId = 0
           AND l.status         IN (0, 2)
           AND l.system_        = 0
-          $(date_filter l.modifiedDate)
         ORDER BY l.externalReferenceCode;
     "
 
@@ -189,7 +184,6 @@ test_site_pages() {
           AND l.status         IN (0, 2)
           AND l.system_        = 0
           AND l.type_          = 'content'
-          $(date_filter l.modifiedDate)
         GROUP BY l.externalReferenceCode
         ORDER BY l.externalReferenceCode;
     "
@@ -211,7 +205,6 @@ test_site_pages() {
           AND ctCollectionId = 0
           AND status         IN (0, 2)
           AND system_        = 0
-          $(date_filter modifiedDate)
         ORDER BY externalReferenceCode;
     "
 
@@ -227,7 +220,6 @@ test_site_pages() {
         FROM LayoutSet
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
-          $(date_filter modifiedDate)
         GROUP BY privateLayout
         ORDER BY privateLayout;
     "
@@ -247,7 +239,6 @@ test_site_pages() {
         FROM LayoutSet
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
-          $(date_filter modifiedDate)
         ORDER BY privateLayout;
     "
 
@@ -266,7 +257,6 @@ test_site_pages() {
         FROM LayoutSet
         WHERE groupId        = __GROUPID__
           AND ctCollectionId = 0
-          $(date_filter modifiedDate)
         ORDER BY privateLayout;
     "
 
