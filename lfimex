@@ -272,6 +272,23 @@ if [ "${EXPORT_ONLY:-0}" != "1" ]; then
   run_step create_site     step_site     || true
 fi
 
+# DB validation is incompatible with date-range runs. Liferay's import rewrites
+# modifiedDate to import-time (and the export ships only a date-scoped subset),
+# so the source/target row sets can't be compared by date. Rather than special-
+# case it per asset, we skip ALL DB validation (and the asset-count diff) when a
+# date filter is active, run export/import as normal, and print a loud notice.
+# Use --filter all to get the full validation pass.
+SKIP_DB_VALIDATION=0
+if [ "${FILTER:-all}" = "date-range" ]; then
+  SKIP_DB_VALIDATION=1
+  log_warn "============================================================"
+  log_warn "DB VALIDATION SKIPPED — date filter active (${FROM_DATE}..${TO_DATE})"
+  log_warn "Liferay's import rewrites modifiedDate, so source and target"
+  log_warn "cannot be compared by date. Export/import run normally;"
+  log_warn "re-run with --filter all to get the full validation pass."
+  log_warn "============================================================"
+fi
+
 if [ "${BATCH_MODE}" = "per-asset" ]; then
   # Two-phase pass: each asset is exported AND imported together (so the LAR
   # path step_export sets on EXPORT_LAR_PATH carries straight into the
@@ -290,7 +307,7 @@ if [ "${BATCH_MODE}" = "per-asset" ]; then
     unset ASSET_TAG
   done
 
-  if [ "${EXPORT_ONLY:-0}" != "1" ] && [ "${SKIP_VALIDATION:-0}" != "1" ]; then
+  if [ "${EXPORT_ONLY:-0}" != "1" ] && [ "${SKIP_VALIDATION:-0}" != "1" ] && [ "${SKIP_DB_VALIDATION}" != "1" ]; then
     for _asset in "${SELECTED_ASSETS[@]}"; do
       ASSET_TAG="${_asset}"
       run_step "validate:${_asset}" step_validate "${_asset}" || true
@@ -301,13 +318,18 @@ else
   run_step export   step_export   "${SELECTED_ASSETS[@]}" || true
   if [ "${EXPORT_ONLY:-0}" != "1" ]; then
     run_step import   step_import   "${SELECTED_ASSETS[@]}" || true
-    if [ "${SKIP_VALIDATION:-0}" != "1" ]; then
+    if [ "${SKIP_VALIDATION:-0}" != "1" ] && [ "${SKIP_DB_VALIDATION}" != "1" ]; then
       run_step validate step_validate "${SELECTED_ASSETS[@]}" || true
     fi
   fi
 fi
 
-if [ "${EXPORT_ONLY:-0}" != "1" ] && [ "${SKIP_VALIDATION:-0}" != "1" ]; then
+# Record one skip row so the step table shows why validation is absent.
+if [ "${EXPORT_ONLY:-0}" != "1" ] && [ "${SKIP_VALIDATION:-0}" != "1" ] && [ "${SKIP_DB_VALIDATION}" = "1" ]; then
+  result_add "validate" "skip" 0 "" "all DB validation skipped: --filter date-range active"
+fi
+
+if [ "${EXPORT_ONLY:-0}" != "1" ] && [ "${SKIP_VALIDATION:-0}" != "1" ] && [ "${SKIP_DB_VALIDATION}" != "1" ]; then
   # Site-wide validation tests run once at the end. Configured via EXTRA_TESTS
   # in config/config.sh — each entry is a test name (lib/tests/<name>.sh).
   EXTRAS=()

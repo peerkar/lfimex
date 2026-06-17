@@ -69,6 +69,11 @@ _result_print_asset_counts() {
   [ -z "${NEW_SITE_GROUP_ID:-}" ] && return 0
   [ -z "${SELECTED_ASSETS+x}" ] && return 0
   [ "${#SELECTED_ASSETS[@]}" -eq 0 ] && return 0
+  # The asset-count diff is a DB comparison, so it shares the date-range
+  # limitation: Liferay's import rewrites modifiedDate, so a date-filtered
+  # count can't match the source. Under --filter date-range the whole DB
+  # validation phase is skipped (see lfimex), so suppress this block too.
+  [ -n "${FROM_DATE:-}" ] && [ -n "${TO_DATE:-}" ] && return 0
 
   # Build rows first so the header is suppressed when nothing has a query.
   local -a rows=()

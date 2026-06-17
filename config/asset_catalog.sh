@@ -255,7 +255,12 @@ asset_count_register segments           "SELECT COUNT(*) FROM SegmentsEntry WHER
 # site_pages: same draft-promotion as page_templates — Liferay's Layout import lands
 # every imported row as status=0 regardless of source state. See header note in
 # lib/tests/site_pages.sh for the DRAFT-on-top-of-APPROVED workflow detail.
-asset_count_register site_pages         "SELECT COUNT(*) FROM Layout WHERE groupId=__GID__ AND ctCollectionId=0 AND system_=0 AND status IN (0,2) __DATE_FILTER__" "modifiedDate"
+# No date column: the page tree migrates wholesale and Layout import resets
+# modifiedDate (and partially rewrites createDate), so no Layout date column is
+# import-stable. Date-range narrowing here would compare in-window source rows
+# against an out-of-window (import-time) target and report phantom diffs. The
+# site_pages test file drops date_filter for the same reason.
+asset_count_register site_pages         "SELECT COUNT(*) FROM Layout WHERE groupId=__GID__ AND ctCollectionId=0 AND system_=0 AND status IN (0,2) __DATE_FILTER__"
 asset_count_register style_books        "SELECT COUNT(*) FROM StyleBookEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 __DATE_FILTER__" "modifiedDate"
 asset_count_register tags               "SELECT COUNT(*) FROM AssetTag WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
 # templates: exclude DDMStructure-class. TemplatePortlet (the templates asset) ships
