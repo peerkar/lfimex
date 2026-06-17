@@ -105,7 +105,7 @@ CLEANUP_INSTANCE="${CLEANUP_INSTANCE:-0}"
 # osgi/configs/ directory at the start of the run. ConfigAdmin picks them up
 # automatically. Off by default; set to 1 (or pass --copy-osgi-configs) to
 # enable.
-COPY_OSGI_CONFIGS="${COPY_OSGI_CONFIGS:-0}"
+COPY_OSGI_CONFIGS="${COPY_OSGI_CONFIGS:-1}"
 OSGI_CONFIGS_DIR="${OSGI_CONFIGS_DIR:-${PROJECT_DIR}/config/osgi}"
 
 # Extended regex (POSIX ERE) matched against ERROR/WARN header lines in the
@@ -295,7 +295,50 @@ EXTRA_TESTS="${EXTRA_TESTS:-friendly_url}"
 #   tags:AssetTag – Dates (https://liferay.atlassian.net/browse/LPD-86888)
 #   tags:AssetTag – Identifiers https://liferay.atlassian.net/browse/LPD-85252
 #   web_content:JournalFolder – Dates (https://liferay.atlassian.net/browse/LPD-86888)
-IGNORE_TESTS="${IGNORE_TESTS:-blogs:BlogsEntry – Small image and cover image caption,blogs:BlogsEntry – Content checksums,categories:AssetCategory - Dates,documents_and_media:DLFileEntryType – Dates,documents_and_media:DLFileEntryMetadata – Identifiers,documents_and_media:DLFolder – Dates,forms:DDMFormInstanceReport – Dates,fragments:FragmentComposition – Total count,fragments:FragmentComposition – Identifiers,fragments:FragmentComposition – Names and descriptions,fragments:FragmentComposition – Core fields,fragments:FragmentComposition – Data checksum,fragments:FragmentComposition – Dates,fragments:FragmentEntryLink – Dates,navigation_menus:SiteNavigationMenu – Dates,navigation_menus:SiteNavigationMenu – Identifiers,navigation_menus:SiteNavigationMenuItem – Identifiers,navigation_menus:SiteNavigationMenuItem – Dates,page_templates:Master Pages – Identifiers,page_templates:Master Pages – Dates,page_templates:Page Template Collections – Identifiers,page_templates:Page Template Collections – Dates,page_templates:Page Templates – Identifiers,page_templates:Page Templates – Dates,page_templates:Display Page Templates – Identifiers,page_templates:Display Page Templates – Dates,site_pages:Layout – Dates,site_pages:LayoutSet – Dates,tags:AssetTag – Dates,web_content:JournalFolder – Dates}"
+if [ -z "${IGNORE_TESTS:-}" ]; then
+  _ignore=(
+    "blogs:BlogsEntry – Small image and cover image caption"
+    "blogs:BlogsEntry – Content checksums"
+    "categories:AssetCategory - Dates"
+    "documents_and_media:DLFileEntryType – Dates"
+    "documents_and_media:DLFileEntryMetadata – Identifiers"
+    "documents_and_media:DLFolder – Dates"
+    "forms:DDMFormInstanceReport – Dates"
+    "forms:DDMFormInstanceReport – Total count"
+    "forms:DDMFormInstanceReport – Report count per form"
+    "forms:DDMFormInstanceReport – Data presence per form"
+    "fragments:FragmentComposition – Total count"
+    "fragments:FragmentComposition – Identifiers"
+    "fragments:FragmentComposition – Names and descriptions"
+    "fragments:FragmentComposition – Core fields"
+    "fragments:FragmentComposition – Data checksum"
+    "fragments:FragmentComposition – Dates"
+    "fragments:FragmentEntryLink – Dates"
+    "navigation_menus:SiteNavigationMenu – Dates"
+    "navigation_menus:SiteNavigationMenu – Identifiers"
+    "navigation_menus:SiteNavigationMenuItem – Identifiers"
+    "navigation_menus:SiteNavigationMenuItem – Dates"
+    "page_templates:Master Pages – Identifiers"
+    "page_templates:Master Pages – Dates"
+    "page_templates:Page Template Collections – Identifiers"
+    "page_templates:Page Template Collections – Dates"
+    "page_templates:Page Templates – Identifiers"
+    "page_templates:Page Templates – Dates"
+    "page_templates:Display Page Templates – Identifiers"
+    "page_templates:Display Page Templates – Dates"
+    "site_pages:Layout – Dates"
+    "site_pages:LayoutSet – Dates"
+    "tags:AssetTag – Dates"
+    "web_content:JournalFolder – Dates"
+    "segments:SegmentsExperience – Count of active experiences"
+    "segments:SegmentsExperience – Identifiers"
+    "segments:SegmentsExperience – Name"
+    "segments:SegmentsExperience – Active and priority"
+    "segments:SegmentsExperience – Dates"
+  )
+  IFS=','; IGNORE_TESTS="${_ignore[*]}"; unset IFS
+  unset _ignore
+fi
 
 # =============================================================================
 # Catalog wiring
