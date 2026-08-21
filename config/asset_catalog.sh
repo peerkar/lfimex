@@ -50,10 +50,10 @@ global_register custom_fields "Custom Fields" \
 
 # These need to be migrated before any site assets, otherwise the site assets that reference them will fail to import.
 #
-# Page templates / "group pages" owned by the site, exported via
-# GroupPagesPortlet. This portlet is BatchEnginePortletDataHandler-backed
-# with FIVE registered task-item-delegates (LayoutPageTemplateCollection-0,
-# UtilityPageResourceImpl, LayoutPageTemplateEntry-{0,1,3}). When a
+# Page templates owned by the site, exported via LayoutPageTemplatesPortlet.
+# This portlet is BatchEnginePortletDataHandler-backed with FOUR registered
+# task-item-delegates (LayoutPageTemplateCollection-0,
+# LayoutPageTemplateEntry-{0,1,3}). When a
 # BatchEnginePortletDataHandler has more than one active registration its
 # doExportData/doImportData gates each sub-registration with
 # `getBooleanParameter(getPortletId(), descriptor.getKey())` and empirically
@@ -62,18 +62,35 @@ global_register custom_fields "Custom Fields" \
 # here; pure UI-defaults doesn't survive the multi-registration gate.
 # Sub-registration keys map to:
 #   LayoutPageTemplateCollection-0  page-template collections
-#   UtilityPageResourceImpl         utility pages
 #   LayoutPageTemplateEntry-0       page templates (basic / content)
 #   LayoutPageTemplateEntry-1       display page templates
 #   LayoutPageTemplateEntry-3       master pages
+# NOTE (LPD-98772, verified against DXP 7.4 build 7413 on learn.liferay.com data):
+# GroupPagesPortlet does NOT exist on this build — the Export dialog offers no
+# such checkbox, so PORTLET_DATA_..._GroupPagesPortlet=on was silently ignored
+# and every export shipped an empty LAR while both steps still reported ok.
+# The page-template handlers now live on LayoutPageTemplatesPortlet, and
+# utility pages moved out to their own portlet
+# (com_liferay_layout_admin_web_portlet_LayoutUtilityPagesPortlet), which this
+# entry no longer covers. Parameter names below are copied verbatim from the
+# rendered Export dialog.
 asset_register page_templates "Pages (Page Templates)" \
-  "com_liferay_layout_admin_web_portlet_GroupPagesPortlet" \
-  "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateCollection-0=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.headless.admin.site.internal.resource.v1_0.UtilityPageResourceImpl=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-0=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-1=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
+  "com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet" \
+  "_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateCollection-0=on
+_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-0=on
+_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-1=on
+_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
   "page_templates"
+
+# Utility pages (404 / 500 / etc). Until DXP 7.4 build ~7413 these rode along
+# with the page-template export as a UtilityPageResourceImpl task-item-delegate;
+# they now have their own portlet, so they need their own asset id or they
+# migrate nowhere. Registered right after page_templates because, like page
+# templates, they must exist before site_pages imports and references them.
+asset_register utility_pages "Utility Pages" \
+  "com_liferay_layout_admin_web_portlet_LayoutUtilityPagesPortlet" \
+  "" \
+  ""
 
 asset_register forms "Forms" \
   "com_liferay_dynamic_data_mapping_form_web_portlet_DDMFormAdminPortlet" \
@@ -217,6 +234,18 @@ asset_register web_content "Web Content" \
   "" \
   "web_content"
 
+# Experiment for LPD-103193: same portlet as web_content, but with the Journal
+# data handler's "version-history" control switched off. JournalPortletDataHandler
+# reads _journal_version-history; when false it adds a correlated subquery
+# restricting the export to max(version) per resourcePrimKey, taking this site
+# from 337,530 JournalArticle rows down to ~2,013 current ones. The control
+# defaults to true (JournalServiceConfiguration.versionHistoryByDefaultEnabled,
+# deflt="true"), which is why every earlier run shipped the full version history.
+asset_register web_content_current "Web Content (current versions only)" \
+  "com_liferay_journal_web_portlet_JournalPortlet" \
+  "_journal_version-history=false" \
+  "web_content"
+
 asset_register wiki "Wiki" \
   "com_liferay_wiki_web_portlet_WikiAdminPortlet" \
   "" \
@@ -251,6 +280,7 @@ asset_count_register navigation_menus   "SELECT COUNT(*) FROM SiteNavigationMenu
 # Source's DRAFTs sit on top of approved pages with the same ERC; both land as status=0
 # on target. status=0 only would undercount source by the draft-on-top count.
 asset_count_register page_templates     "SELECT COUNT(*) FROM LayoutPageTemplateEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND status IN (0,2) __DATE_FILTER__" "modifiedDate"
+asset_count_register utility_pages      "SELECT COUNT(*) FROM LayoutUtilityPageEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
 asset_count_register segments           "SELECT COUNT(*) FROM SegmentsEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
 # site_pages: same draft-promotion as page_templates — Liferay's Layout import lands
 # every imported row as status=0 regardless of source state. See header note in
@@ -275,4 +305,5 @@ asset_count_register templates          "SELECT COUNT(*) FROM DDMTemplate WHERE 
 # (the export ships the approved one; target shows it but source's MAX-version
 # filter excludes it). See lib/tests/web_content.sh for the verified example.
 asset_count_register web_content        "SELECT COUNT(DISTINCT ja.articleId) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.status=0 __DATE_FILTER__" "ja.modifiedDate"
+asset_count_register web_content_current "SELECT COUNT(DISTINCT ja.articleId) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.status=0 __DATE_FILTER__" "ja.modifiedDate"
 asset_count_register wiki               "SELECT COUNT(*) FROM WikiPage WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 AND status=0 __DATE_FILTER__" "modifiedDate"

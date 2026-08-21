@@ -95,7 +95,14 @@ timer_human()  {
 # --- mysql ----------------------------------------------------------------
 
 mysql_q() {
-  mysql -u "${SRC_DB_USER}" -p"${SRC_DB_PASS}" -h "${SRC_DB_HOST}" "${SRC_DB_NAME}" -BNe "$1" 2>/dev/null
+  # An empty password must not become a bare "-p": the client would then prompt
+  # on the tty for every single query. Only pass the flag when there's a value,
+  # mirroring lib/compare.sh's _db helper.
+  local -a args=(-u "${SRC_DB_USER}" -h "${SRC_DB_HOST}" -BN)
+  if [ -n "${SRC_DB_PASS:-}" ]; then
+    args+=(-p"${SRC_DB_PASS}")
+  fi
+  mysql "${args[@]}" "${SRC_DB_NAME}" -e "$1" 2>/dev/null
 }
 
 # Look up the groupKey for a groupId. compare.sh resolves --source-site /

@@ -85,7 +85,21 @@ _step_cleanup_site() {
     return 0
   fi
 
-  log_info "Deleting site groupId=${NEW_SITE_GROUP_ID} via headless-admin-site"
+  # headless-admin-site addresses a single site by its externalReferenceCode:
+  # the only per-site path in the OpenAPI is /sites/{siteExternalReferenceCode}.
+  # Passing the groupId returns 404 and the site silently survives the run.
+  # Fall back to the groupId when the lookup comes up empty, so behavior is
+  # never worse than before.
+  #
+  # NOTE: mysql_q reads SRC_DB_*. On a partitioned database with a target
+  # company in another schema, this lookup needs the target connection.
+  local site_erc
+  site_erc="$(mysql_q "SELECT externalReferenceCode FROM Group_ WHERE groupId=${NEW_SITE_GROUP_ID};")"
+  if [ -z "${site_erc}" ] || [ "${site_erc}" = "NULL" ]; then
+    site_erc="${NEW_SITE_GROUP_ID}"
+  fi
+
+  log_info "Deleting site groupId=${NEW_SITE_GROUP_ID} (erc=${site_erc}) via headless-admin-site"
 
   local response="${RUN_DIR}/cleanup.response.json"
   local http_code
@@ -93,7 +107,7 @@ _step_cleanup_site() {
     -X DELETE \
     -o "${response}" \
     -w '%{http_code}' \
-    "${TARGET_BASE_URL}/o/headless-admin-site/v1.0/sites/${NEW_SITE_GROUP_ID}")
+    "${TARGET_BASE_URL}/o/headless-admin-site/v1.0/sites/${site_erc}")
 
   bundle_log_collect "${log_offset}" "${log_file}"
 
