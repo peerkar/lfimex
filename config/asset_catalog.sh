@@ -50,10 +50,10 @@ global_register custom_fields "Custom Fields" \
 
 # These need to be migrated before any site assets, otherwise the site assets that reference them will fail to import.
 #
-# Page templates / "group pages" owned by the site, exported via
-# GroupPagesPortlet. This portlet is BatchEnginePortletDataHandler-backed
-# with FIVE registered task-item-delegates (LayoutPageTemplateCollection-0,
-# UtilityPageResourceImpl, LayoutPageTemplateEntry-{0,1,3}). When a
+# Page templates owned by the site, exported via LayoutPageTemplatesPortlet.
+# This portlet is BatchEnginePortletDataHandler-backed with FOUR registered
+# task-item-delegates (LayoutPageTemplateCollection-0,
+# LayoutPageTemplateEntry-{0,1,3}). When a
 # BatchEnginePortletDataHandler has more than one active registration its
 # doExportData/doImportData gates each sub-registration with
 # `getBooleanParameter(getPortletId(), descriptor.getKey())` and empirically
@@ -62,17 +62,24 @@ global_register custom_fields "Custom Fields" \
 # here; pure UI-defaults doesn't survive the multi-registration gate.
 # Sub-registration keys map to:
 #   LayoutPageTemplateCollection-0  page-template collections
-#   UtilityPageResourceImpl         utility pages
 #   LayoutPageTemplateEntry-0       page templates (basic / content)
 #   LayoutPageTemplateEntry-1       display page templates
 #   LayoutPageTemplateEntry-3       master pages
+# NOTE (LPD-98772, verified against DXP 7.4 build 7413 on learn.liferay.com data):
+# GroupPagesPortlet does NOT exist on this build — the Export dialog offers no
+# such checkbox, so PORTLET_DATA_..._GroupPagesPortlet=on was silently ignored
+# and every export shipped an empty LAR while both steps still reported ok.
+# The page-template handlers now live on LayoutPageTemplatesPortlet, and
+# utility pages moved out to their own portlet
+# (com_liferay_layout_admin_web_portlet_LayoutUtilityPagesPortlet), which this
+# entry no longer covers. Parameter names below are copied verbatim from the
+# rendered Export dialog.
 asset_register page_templates "Pages (Page Templates)" \
-  "com_liferay_layout_admin_web_portlet_GroupPagesPortlet" \
-  "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateCollection-0=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.headless.admin.site.internal.resource.v1_0.UtilityPageResourceImpl=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-0=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-1=on
-_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
+  "com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet" \
+  "_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateCollection-0=on
+_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-0=on
+_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-1=on
+_com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
   "page_templates"
 
 asset_register forms "Forms" \
