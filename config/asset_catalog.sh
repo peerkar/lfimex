@@ -82,6 +82,16 @@ _com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_c
 _com_liferay_layout_page_template_admin_web_portlet_LayoutPageTemplatesPortlet_com.liferay.layout.page.template.model.LayoutPageTemplateEntry-3=on" \
   "page_templates"
 
+# Utility pages (404 / 500 / etc). Until DXP 7.4 build ~7413 these rode along
+# with the page-template export as a UtilityPageResourceImpl task-item-delegate;
+# they now have their own portlet, so they need their own asset id or they
+# migrate nowhere. Registered right after page_templates because, like page
+# templates, they must exist before site_pages imports and references them.
+asset_register utility_pages "Utility Pages" \
+  "com_liferay_layout_admin_web_portlet_LayoutUtilityPagesPortlet" \
+  "" \
+  ""
+
 asset_register forms "Forms" \
   "com_liferay_dynamic_data_mapping_form_web_portlet_DDMFormAdminPortlet" \
   "" \
@@ -258,6 +268,7 @@ asset_count_register navigation_menus   "SELECT COUNT(*) FROM SiteNavigationMenu
 # Source's DRAFTs sit on top of approved pages with the same ERC; both land as status=0
 # on target. status=0 only would undercount source by the draft-on-top count.
 asset_count_register page_templates     "SELECT COUNT(*) FROM LayoutPageTemplateEntry WHERE groupId=__GID__ AND ctCollectionId=0 AND status IN (0,2) __DATE_FILTER__" "modifiedDate"
+asset_count_register utility_pages      "SELECT COUNT(*) FROM LayoutUtilityPageEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
 asset_count_register segments           "SELECT COUNT(*) FROM SegmentsEntry WHERE groupId=__GID__ AND ctCollectionId=0 __DATE_FILTER__" "modifiedDate"
 # site_pages: same draft-promotion as page_templates — Liferay's Layout import lands
 # every imported row as status=0 regardless of source state. See header note in
