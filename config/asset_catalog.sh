@@ -234,6 +234,18 @@ asset_register web_content "Web Content" \
   "" \
   "web_content"
 
+# Experiment for LPD-103193: same portlet as web_content, but with the Journal
+# data handler's "version-history" control switched off. JournalPortletDataHandler
+# reads _journal_version-history; when false it adds a correlated subquery
+# restricting the export to max(version) per resourcePrimKey, taking this site
+# from 337,530 JournalArticle rows down to ~2,013 current ones. The control
+# defaults to true (JournalServiceConfiguration.versionHistoryByDefaultEnabled,
+# deflt="true"), which is why every earlier run shipped the full version history.
+asset_register web_content_current "Web Content (current versions only)" \
+  "com_liferay_journal_web_portlet_JournalPortlet" \
+  "_journal_version-history=false" \
+  "web_content"
+
 asset_register wiki "Wiki" \
   "com_liferay_wiki_web_portlet_WikiAdminPortlet" \
   "" \
@@ -293,4 +305,5 @@ asset_count_register templates          "SELECT COUNT(*) FROM DDMTemplate WHERE 
 # (the export ships the approved one; target shows it but source's MAX-version
 # filter excludes it). See lib/tests/web_content.sh for the verified example.
 asset_count_register web_content        "SELECT COUNT(DISTINCT ja.articleId) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.status=0 __DATE_FILTER__" "ja.modifiedDate"
+asset_count_register web_content_current "SELECT COUNT(DISTINCT ja.articleId) FROM JournalArticle ja WHERE ja.groupId=__GID__ AND ja.ctCollectionId=0 AND ja.status=0 __DATE_FILTER__" "ja.modifiedDate"
 asset_count_register wiki               "SELECT COUNT(*) FROM WikiPage WHERE groupId=__GID__ AND ctCollectionId=0 AND head=1 AND status=0 __DATE_FILTER__" "modifiedDate"
